@@ -77,4 +77,5 @@ class PredicateSignature():
                 * True:     Arguments are valid for predicate.
                 * False:    Arguments are not valid for predicate. 
         """
+        # TODO: Add type checking logic.
         return len(arguments) != self.arity
