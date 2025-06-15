@@ -266,7 +266,7 @@ class PredicateVocabulary():
         # Otherwise, create Predicate.
         try:                return  Predicate(
                                         name =          name,
-                                        args =          arguments,
+                                        arguments =     arguments,
                                         signature =     self.get_signature(name),
                                         confidence =    confidence
                                     )
