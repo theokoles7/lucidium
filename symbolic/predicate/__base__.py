@@ -23,17 +23,17 @@ class Predicate():
     """
     # Define parameters.
     name:       str
-    args:       Tuple[Any, ...]
+    arguments:  Tuple[Any, ...]
     signature:  Optional[PredicateSignature] =  None
     confidence: float =                         1.0
     
     def __post_init__(self):
         """# Validate construction of predicate."""
         # If signature was provided and their invalid...
-        if self.signature is not None and self.signature.validate_arguments(arguments = list(self.args)):
+        if self.signature is not None and self.signature.validate_arguments(arguments = list(self.arguments)):
             
             # Raise error to report.
-            raise ValueError(f"Arguments {self.args} don't match signature {self.signature}")
+            raise ValueError(f"Arguments {self.arguments} don't match signature {self.signature}")
         
         # Assert that confidence is within range.
         assert 0.0 <= self.confidence <= 1.0, f"Confidence expected to be 0.0-1.0, got {self.confidence}"
@@ -56,7 +56,7 @@ class Predicate():
         ## Returns:
             * str:  String representation of predicate.
         """
-        return  f"""{self.name}({",".join(str(arg) for arg in self.args)}){f"[{self.confidence:.2f}]" if self.confidence < 1.0 else ""}"""
+        return  f"""{self.name}({",".join(str(arg) for arg in self.arguments)}){f"[{self.confidence:.2f}]" if self.confidence < 1.0 else ""}"""
         
     @property
     def arity(self) -> int:
@@ -67,7 +67,7 @@ class Predicate():
         ## Returns:
             * int:  Predicate arity.
         """
-        return len(self.args)
+        return len(self.arguments)
         
     def ground(self,
         bindings:   Dict[str, Any]
@@ -76,7 +76,7 @@ class Predicate():
         
         Apply variable bindings to create a grounded predicate.
 
-        ## Args:
+        ## Arguments:
             * bindings  (Dict[str, Any]):   Variable bindings.
 
         ## Returns:
@@ -84,7 +84,7 @@ class Predicate():
         """
         return  Predicate(
                     name =          self.name,
-                    args =          tuple(bindings.get(arg, arg) for arg in self.args),
+                    arguments =          tuple(bindings.get(arg, arg) for arg in self.arguments),
                     signature =     self.signature,
                     confidence =    self.confidence
                 )
@@ -99,7 +99,7 @@ class Predicate():
             * str:  Predicate's unique hash.
         """
         return  md5(
-                    string =    f"""{self.name}({",".join(str(arg) for arg in self.args)})""".encode()
+                    string =    f"""{self.name}({",".join(str(arg) for arg in self.arguments)})""".encode()
         ).hexdigest()[:8]
         
     @property
