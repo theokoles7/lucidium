@@ -4,8 +4,8 @@ Define engine for discovering and creating composite predicates.
 """
 
 from itertools                          import product
-from re                                 import match, Match
-from typing                             import Any, Dict, List, Tuple
+from re                                 import findall, match, Match
+from typing                             import Any, Dict, List, Set, Tuple
 
 from symbolic.composition.candidate     import Candidate
 from symbolic.composition.pattern       import Pattern
@@ -76,40 +76,159 @@ class CompositionEngine():
         
         # Initialize with common composition patterns.
         self._initialize_common_patterns_()
+
+    def _calculate_binding_diversity_(self,
+        candidate:  Candidate
+    ) -> float:
+        """# Calculate Binding Diversity.
+        
+        Measure the diversity of variable bindings for this pattern. More diverse bindings indicate 
+        a more general and useful pattern.
+        
+        ## Args:
+            * candidate (Candidate):    Candidate to analyze
+        
+        ## Returns:
+            * float:    Diversity score between 0.0 and 1.0
+        """
+        # Analyze the diversity of variable bindings across instances.
+        all_instances:          List[Dict[str, Any]] =  (
+                                                            candidate.positive_instances + 
+                                                            candidate.negative_instances
+                                                        )
+        
+        # Need multiple instances to measure diversity.
+        if len(all_instances) <= 1: return 0.0
+        
+        # Collect all unique binding combinations.
+        unique_binding_sets:    Set[str] =              set()
+        
+        for instance in all_instances:
+            # Extract bindings from the instance.
+            bindings: Dict[str, Any] = instance.get('match', {}).get('bindings', {})
+            
+            # Create a canonical string representation.
+            unique_binding_sets.add("_".join(
+                f"{k}:{v}" for k, v in sorted(bindings.items())
+            ))
+        
+        # Diversity is the ratio of unique bindings to total instances.
+        # Higher diversity means the pattern generalizes across different objects.
+        return len(unique_binding_sets) / len(all_instances)
         
     def _calculate_co_occurence_(self,
         candidate:  Candidate
     ) -> float:
         """# Calculate Co-Occurence.
+    
+        Calculate how often the component predicates co-occur together.
         
-        Calculate how often the component predicates co-occur.
+        This measures the statistical strength of the pattern by analyzing how frequently the 
+        component predicates appear together compared to their individual appearance rates.
 
         ## Args:
             * candidate (Candidate):    Candidate whose co-occurence is being calculated.
 
         ## Returns:
-            * float:    Co-occurence score for candidate.
+            * float:    Co-occurrence score between 0.0 and 1.0
+                * 1.0:  Predicates always appear together when pattern is relevant
+                * 0.5:  Random co-occurrence
+                * 0.0:  Predicates never appear together
         """
-        # TODO: Implement co-occurrence calculation. This would analyze the frequency of component 
-        # predicate combinations.
-        return 0.5
+        # Get all instances where this pattern was observed.
+        all_instances:          List[Dict[str, Any]] =  candidate.positive_instances + \
+                                                        candidate.negative_instances
+        
+        # If there are no instances, there is no co-occurrence.
+        if len(all_instances) == 0: return 0.0
+        
+        # Count how many instances have all required predicates present.
+        complete_pattern_count: int =                   0
+        
+        # For each instance provided...
+        for instance in all_instances:
+            
+            # Check if all expected predicates are present in this instance.
+            matched_predicates:     List[Predicate] =   instance.get('matched_predicates', [])
+            expected_components:    int =               len(candidate.pattern.component_patterns)
+            
+            # If all pattern components were matched, count as complete.
+            if len(matched_predicates) >= expected_components: complete_pattern_count += 1
+        
+        # Co-occurrence is the ratio of complete patterns to total observations.
+        return complete_pattern_count / len(all_instances)
     
     def _calculate_distinctiveness_(self,
         candidate:  Candidate
     ) -> float:
         """# Calculate Distinctiveness.
+    
+        Calculate how distinctive/unique this composition is compared to existing knowledge.
         
-        Calculate how distinctive/unique this composition is.
+        Distinctiveness measures how much new information this pattern provides:
+            * High distinctiveness: Pattern captures something unique and valuable.
+            * Low distinctiveness: Pattern is redundant with existing knowledge.
 
         ## Args:
             * candidate (Candidate):    Candidate whose distinctiveness is being calculated.
 
         ## Returns:
-            * float:    Distinctiveness score for candidate.
+            * float:    Distinctiveness score between 0.0 and 1.0
+                * 1.0: Highly distinctive and novel
+                * 0.5: Moderately distinctive  
+                * 0.0: Completely redundant
         """
-        # TODO: Implement distinctiveness calculation. This would measure how much additional 
-        # information the composition provides
-        return 0.5
+        # Factor 1: Pattern complexity (more complex = potentially more distinctive)
+        pattern_complexity:     float = self._calculate_pattern_complexity_(
+                                            candidate = candidate
+                                        )
+        
+        # Factor 2: Binding diversity (more diverse bindings = more general pattern)
+        binding_diversity:      float = self._calculate_binding_diversity_(
+                                            candidate = candidate
+                                        )
+        
+        # Factor 3: Predictive power (better than random = more distinctive)
+        predictive_power:       float = max(0.0, candidate.confidence - 0.5) * 2.0  # Normalize to 0-1
+        
+        # Combine factors with equal weights
+        return (pattern_complexity + binding_diversity + predictive_power) / 3.0
+    
+    def _calculate_pattern_complexity_(self,
+        candidate:  Candidate
+    ) -> float:
+        """# Calculate Pattern Complexity.
+    
+        Measure the complexity of the pattern structure.
+        
+        ## Args:
+            * candidate (Candidate):    Candidate to analyze
+        
+        ## Returns:
+            * float:    Complexity score between 0.0 and 1.0
+        """
+        # Count number of component patterns.
+        num_components:         int =       len(candidate.pattern.component_patterns)
+        
+        # Count unique variables across all components.
+        unique_variables:       Set[str] =  set()
+        
+        # For each component...
+        for component in candidate.pattern.component_patterns:
+            
+            # Extract variables from component pattern string.
+            unique_variables.update(findall(r'\?(\w+)', component))
+        
+        # Record number of variables.
+        num_variables:          int =       len(unique_variables)
+        
+        # Complexity increases with more components and variables.
+        # Normalize to 0-1 range (assuming reasonable maximums).
+        component_complexity:   float =     min(1.0, num_components / 3.0)
+        variable_complexity:    float =     min(1.0, num_variables / 5.0)
+        
+        # Average the complexities
+        return (component_complexity + variable_complexity) / 2.0
     
     def _create_predicate_(self,
         candidate:  Candidate
@@ -186,7 +305,10 @@ class CompositionEngine():
         candidates based on accumulated evidence.
         """
         # For each candidate stored...
-        for candidate in self._candidates_.values():
+        for candidate_key, candidate in self._candidates_.items():
+        
+            # Update utility score using the candidate's own method
+            candidate.calculate_utility()
             
             # Update co-occurence.
             candidate.co_occurence =        self._calculate_co_occurence_(
