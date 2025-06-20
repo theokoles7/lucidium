@@ -5,6 +5,36 @@ implementations.
 """
 
 __all__ =   [
+    
+            # COMPOSITION
+            
+                # Components & taxonomies.
+                "Candidate",
+                "CompositionType",
+                "Pattern",
+                "PredicateSignature",
+                
+                # Composition execution, discovery, & validation.
+                "CompositionEngine",
+                "Validator"
+            
+            # LOGIC
+
+                # Expressions.
+                "Expression",
+                "CompoundExpression",
+                "PredicateExpression",
+                
+                # Logical expression components.
+                "Operator",
+                "Variable",
+                
+                # Expression structures.
+                "Reasoner",
+                "Rule"
+    
+            # PREDICATE
+            
                 # Predicate class.
                 "Predicate",
                 
@@ -18,4 +48,6 @@ __all__ =   [
                 "PredicateVocabulary"
             ]
 
-from symbolic.predicate import *
+from symbolic.composition   import *
+from symbolic.logic         import *
+from symbolic.predicate     import *

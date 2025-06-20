@@ -172,6 +172,17 @@ class Candidate():
         """
         return self._co_occurence_
     
+    @co_occurence.setter
+    def co_occurence(self,
+        value:  float
+    ) -> None:
+        """# Set Co-Occurence.
+
+        ## Args:
+            * value (float):    Value to assign.
+        """
+        self._co_occurence_ = value
+    
     @property
     def confidence(self) -> float:
         """# Get Confidence.
@@ -202,13 +213,24 @@ class Candidate():
         return self._definition_
     
     @property
-    def disctinctiveness(self) -> float:
+    def distinctiveness(self) -> float:
         """# Get Distinctiveness.
 
         ## Returns:
             * float:    How unique/distinguishing this pattern is.
         """
         return self._distinctiveness_
+    
+    @distinctiveness.setter
+    def distinctiveness(self,
+        value:  float
+    ) -> None:
+        """# Set Distinctiveness.
+
+        ## Args:
+            * value (float):    Value being assigned.
+        """
+        self._distinctiveness_ = value
     
     @property
     def evidence_count(self) -> int:
@@ -218,6 +240,17 @@ class Candidate():
             * int:  Total number of evidence instances observed.
         """
         return self._evidence_count_
+    
+    @evidence_count.setter
+    def evidence_count(self,
+        value:  int
+    ) -> None:
+        """# Set Evidence Count.
+
+        ## Args:
+            * value (int):  Value being assigned.
+        """
+        self._evidence_count_ = value
     
     @property
     def meets_criteria(self) -> bool:
