@@ -231,7 +231,7 @@ class PredicateVocabulary():
         self._signatures_[signature.name] = signature
         
         # Add signature to category index.
-        self._by_category_[signature.category].add(signature)
+        self._by_category_[signature.category].add(signature.name)
         
         # If signature's arity is not already accounted for in arity index...
         if signature.arity not in self._by_arity_:
@@ -240,7 +240,7 @@ class PredicateVocabulary():
             self._by_arity_[signature.arity] =  set()
             
         # Add signature to arity index.
-        self._by_arity_[signature.arity].add(signature)
+        self._by_arity_[signature.arity].add(signature.name)
         
         # Indicate successful signature registration.
         return True

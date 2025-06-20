@@ -133,9 +133,9 @@ class Rule():
                 
                 # Apply arc consistency.
                 propagated_domains[variable] =  self._apply_arc_consistency_(
-                                                    variable =              variable,
-                                                    propagated_domains =    propagated_domains,
-                                                    predicate_set =         predicate_set
+                                                    variable =      variable,
+                                                    domains =       propagated_domains,
+                                                    predicate_set = predicate_set
                                                 )
                 
                 # Set flag based on if domain was changed.
@@ -172,7 +172,7 @@ class Rule():
                     value
                     for value
                     in domain
-                    if self._value_satisfies_structural_constrains_(
+                    if self._value_satisfies_structural_constraints_(
                         variable =              variable,
                         value =                 value,
                         relevant_predicates =   relevant_predicates,
@@ -513,7 +513,7 @@ class Rule():
             * Set[Any]: Set of all values found in predicate arguments.
         """
         # Extract values from all predicates in the set.
-        return set(predicate.arguments for predicate in predicate_set)
+        return set().union(*(predicate.arguments for predicate in predicate_set))
     
     def _filter_by_type_(self,
         domain:         Set[Any],

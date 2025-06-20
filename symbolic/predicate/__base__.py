@@ -30,7 +30,7 @@ class Predicate():
     def __post_init__(self):
         """# Validate construction of predicate."""
         # If signature was provided and their invalid...
-        if self.signature is not None and self.signature.validate_arguments(arguments = list(self.arguments)):
+        if self.signature is not None and not self.signature.validate_arguments(arguments = list(self.arguments)):
             
             # Raise error to report.
             raise ValueError(f"Arguments {self.arguments} don't match signature {self.signature}")
@@ -99,16 +99,5 @@ class Predicate():
             * str:  Predicate's unique hash.
         """
         return  md5(
-                    string =    f"""{self.name}({",".join(str(arg) for arg in self.arguments)})""".encode()
+                    f"""{self.name}({",".join(str(arg) for arg in self.arguments)})""".encode()
         ).hexdigest()[:8]
-        
-    @property
-    def signature(self) -> PredicateSignature:
-        """# Get Signature.
-        
-        Provide predicate's signature.
-
-        ## Returns:
-            * PredicateSignature:   Predicate's signature.
-        """
-        return self.signature

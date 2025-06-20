@@ -260,15 +260,9 @@ class CompoundExpression(Expression):
 
         ## Returns:
             * Set[Variable]:    Set of operand variables.
-        """
-        # Initialize empty set for storing variables.
-        variables:  Set =   set()
-        
+        """        
         # Add variables from each operand.
-        variables.update(operand.get_variables() for operand in self._operands_)
-        
-        # Provide variables set.
-        return variables
+        return set().union(*(operand.get_variables() for operand in self._operands_))
     
     @property
     def operands(self) -> List[Expression]:

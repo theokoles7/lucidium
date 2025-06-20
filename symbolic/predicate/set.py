@@ -31,8 +31,11 @@ class PredicateSet():
         # Initialize predicate dictionary.
         self._predicates_:  Dict[str, Predicate] =  {}
         
-        # Add predicates passed.
-        for predicate in predicates: self.add(predicate)
+        # If predicates were given...
+        if predicates: 
+            
+            # Add predicates passed.
+            for predicate in predicates: self.add(predicate)
         
     def __iter__(self) -> Iterable[Predicate]:
         """# Get Iterable.
@@ -76,7 +79,11 @@ class PredicateSet():
         if self.is_empty: return f"""PredicateSet(empty)"""
         
         # Otherwise, initialize string with up to 5 predicates.
-        predicates: List[str] = [str(predicate) for predicate in self._predicates_[:5]]
+        predicates: List[str] = [
+                                    str(predicate)
+                                    for predicate
+                                    in list(self._predicates_.values())[:5]
+                                ]
         
         # If there are more than 5 predicates in the set, simply append an ellipses for brevity.
         if self.size > 5: predicates.append("...")

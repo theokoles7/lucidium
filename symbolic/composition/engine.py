@@ -245,16 +245,16 @@ class CompositionEngine():
             * Dict[str, Any]:   Dictionary with discovery statistics and metrics.
         """
         return  {
-                    "active_candidates":    len(self.candidates),
-                    "total_patterns":       len(self.composition_patterns),
-                    "discovery_stats":      self.discovery_statistics.copy(),
+                    "active_candidates":    len(self._candidates_),
+                    "total_patterns":       len(self._patterns_),
+                    "discovery_stats":      self._statistics_.copy(),
                     "candidate_details":    {
                                                 key:    {
                                                             "support":      candidate.support,
                                                             "confidence":   candidate.confidence,
                                                             "utility":      candidate.utility_score
                                                         }
-                                                for key, candidate in self.candidates.items()
+                                                for key, candidate in self._candidates_.items()
                                             }
                 }
         
