@@ -62,6 +62,49 @@ class Candidate():
         self._distinctiveness_:     float =                 0.0
         self._utility_:             float =                 0.0
         
+    def _calculate_utility_from_external_data_(self,
+        goal_achievement_data:  List[Dict[str, Any]]
+    ) -> float:
+        """# Calculate Utility from External Data.
+    
+        Original algorithm that searches external episode data for pattern relevance.
+
+        ## Args:
+            * goal_achievement_data (List[Dict[str, Any]]): List of episode data with outcomes.
+
+        ## Returns:
+            * float:    Utility score between 0.0 and 1.0.
+        """
+        # If there is no data provided, utility cannot be calculated.
+        if not goal_achievement_data: return 0.0
+    
+        # Initialize counts.
+        relevant_episodes:              int =   0
+        successful_with_composition:    int =   0
+        
+        # For each episode in data...
+        for episode in goal_achievement_data:
+            
+            # If composition was relevant to episode...
+            if self._composition_relevant_to_episode_(episode):
+                
+                # Increment relevancy count.
+                relevant_episodes +=                1
+                
+                # If episode was successful.
+                if episode.get("success", False):
+                    
+                    # Increment success count.
+                    successful_with_composition +=  1
+        
+        # If there were no relevant episodes, utility is zero.
+        if relevant_episodes == 0: return 0.0
+        
+        # Calculate and update utility score.
+        self._utility_:                 float = successful_with_composition / relevant_episodes
+        
+        return self._utility_
+        
     def _composition_relevant_to_episode_(self,
         episode:    Dict[str, Any]
     ) -> bool:
@@ -121,51 +164,8 @@ class Candidate():
         # Increment evidence count.
         self.evidence_count += 1
         
-    def _calculate_utility_from_external_data_(self,
-        goal_achievement_data:  List[Dict[str, Any]]
-    ) -> float:
-        """# Calculate Utility from External Data.
-    
-        Original algorithm that searches external episode data for pattern relevance.
-
-        ## Args:
-            * goal_achievement_data (List[Dict[str, Any]]): List of episode data with outcomes.
-
-        ## Returns:
-            * float:    Utility score between 0.0 and 1.0.
-        """
-        # If there is no data provided, utility cannot be calculated.
-        if not goal_achievement_data: return 0.0
-    
-        # Initialize counts.
-        relevant_episodes:              int =   0
-        successful_with_composition:    int =   0
-        
-        # For each episode in data...
-        for episode in goal_achievement_data:
-            
-            # If composition was relevant to episode...
-            if self._composition_relevant_to_episode_(episode):
-                
-                # Increment relevancy count.
-                relevant_episodes +=                1
-                
-                # If episode was successful.
-                if episode.get("success", False):
-                    
-                    # Increment success count.
-                    successful_with_composition +=  1
-        
-        # If there were no relevant episodes, utility is zero.
-        if relevant_episodes == 0: return 0.0
-        
-        # Calculate and update utility score.
-        self._utility_:                 float = successful_with_composition / relevant_episodes
-        
-        return self._utility_
-        
     def calculate_utility(self,
-        goal_achievement_data:  List[Dict[str, Any]]
+        goal_achievement_data:  List[Dict[str, Any]] =  None
     ) -> float:
         """# Calculate Utility.
 
