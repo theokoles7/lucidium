@@ -58,52 +58,9 @@ class Candidate():
         self._negative_instances_:  List[Dict[str, Any]] =  []
         
         # Initialize metrics.
-        self._co_occurrence_:       float =                 0.0
+        self._co_occurence_:        float =                 0.0
         self._distinctiveness_:     float =                 0.0
         self._utility_:             float =                 0.0
-        
-    def _calculate_utility_from_external_data_(self,
-        goal_achievement_data:  List[Dict[str, Any]]
-    ) -> float:
-        """# Calculate Utility from External Data.
-    
-        Original algorithm that searches external episode data for pattern relevance.
-
-        ## Args:
-            * goal_achievement_data (List[Dict[str, Any]]): List of episode data with outcomes.
-
-        ## Returns:
-            * float:    Utility score between 0.0 and 1.0.
-        """
-        # If there is no data provided, utility cannot be calculated.
-        if not goal_achievement_data: return 0.0
-    
-        # Initialize counts.
-        relevant_episodes:              int =   0
-        successful_with_composition:    int =   0
-        
-        # For each episode in data...
-        for episode in goal_achievement_data:
-            
-            # If composition was relevant to episode...
-            if self._composition_relevant_to_episode_(episode):
-                
-                # Increment relevancy count.
-                relevant_episodes +=                1
-                
-                # If episode was successful.
-                if episode.get("success", False):
-                    
-                    # Increment success count.
-                    successful_with_composition +=  1
-        
-        # If there were no relevant episodes, utility is zero.
-        if relevant_episodes == 0: return 0.0
-        
-        # Calculate and update utility score.
-        self._utility_:                 float = successful_with_composition / relevant_episodes
-        
-        return self._utility_
         
     def _composition_relevant_to_episode_(self,
         episode:    Dict[str, Any]
@@ -165,7 +122,7 @@ class Candidate():
         self.evidence_count += 1
         
     def calculate_utility(self,
-        goal_achievement_data:  List[Dict[str, Any]] =  None
+        goal_achievement_data:  List[Dict[str, Any]]
     ) -> float:
         """# Calculate Utility.
 
@@ -175,37 +132,48 @@ class Candidate():
         ## Returns:
             * float:    Utility score between 0.0 and 1.0.
         """
-        # If external data provided...
-        if goal_achievement_data is not None:
+        # If there is no data provided, utility cannot be calculated.
+        if goal_achievement_data is None: return 0.0
+        
+        # Initialize counts.
+        relevant_episodes:              int =   0
+        successful_with_composition:    int =   0
+        
+        # For each episode in data...
+        for episode in goal_achievement_data:
             
-            # Use original algorithm.
-            return  self._calculate_utility_from_external_data_(
-                        goal_achievement_data = goal_achievement_data
-                    )
-    
-        # Otherwise, use internal positive/negative instances
-        total_instances:    int =   len(self.positive_instances) + len(self.negative_instances)
+            # If composition was relevant to episode...
+            if self._composition_relevant_to_episode_(episode):
+                
+                # Increment relevancy count.
+                relevant_episodes += 1
+                
+                # If episode was successful.
+                if episode.get("success", False):
+                    
+                    # Increment success count.
+                    successful_with_composition += 1
+                    
+        # If there were no relevant episodes, utility is zero.
+        if relevant_episodes == 0: return 0.0
         
-        # No evidence means no utility
-        if total_instances == 0:    return 0.0
+        # Update utility score.
+        self.utility:   float = successful_with_composition / relevant_episodes
         
-        # Update internal utility score
-        self._utility_:     float = len(self.positive_instances) / total_instances
-        
-        # Provide calculation.
-        return self._utility_
+        # Return calculation.
+        return self.utility
         
     @property
-    def co_occurrence(self) -> float:
+    def co_occurence(self) -> float:
         """# Get Co-Occurence.
 
         ## Returns:
             * float:    How often component predicates appear together.
         """
-        return self._co_occurrence_
+        return self._co_occurence_
     
-    @co_occurrence.setter
-    def co_occurrence(self,
+    @co_occurence.setter
+    def co_occurence(self,
         value:  float
     ) -> None:
         """# Set Co-Occurence.
@@ -213,7 +181,7 @@ class Candidate():
         ## Args:
             * value (float):    Value to assign.
         """
-        self._co_occurrence_ =  value
+        self._co_occurence_ = value
     
     @property
     def confidence(self) -> float:
