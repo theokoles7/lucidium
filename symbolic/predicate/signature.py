@@ -341,7 +341,7 @@ class PredicateSignature():
                 
                 # Generics.
                 return self._is_valid_generic_type_(
-                    argument =  argument,
+                    argument =      argument,
                     expected_type = expected_type
                 )
     
