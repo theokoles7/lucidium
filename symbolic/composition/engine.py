@@ -98,18 +98,36 @@ class CompositionEngine():
         candidate:  Candidate
     ) -> float:
         """# Calculate Distinctiveness.
+    
+        Calculate how distinctive/unique this composition is compared to existing knowledge.
         
-        Calculate how distinctive/unique this composition is.
+        Distinctiveness measures how much new information this pattern provides:
+            * High distinctiveness: Pattern captures something unique and valuable.
+            * Low distinctiveness: Pattern is redundant with existing knowledge.
 
         ## Args:
             * candidate (Candidate):    Candidate whose distinctiveness is being calculated.
 
         ## Returns:
-            * float:    Distinctiveness score for candidate.
+            * float:    Distinctiveness score between 0.0 and 1.0
+                * 1.0: Highly distinctive and novel
+                * 0.5: Moderately distinctive  
+                * 0.0: Completely redundant
         """
-        # TODO: Implement distinctiveness calculation. This would measure how much additional 
-        # information the composition provides
-        return 0.5
+        # Factor 1: Pattern complexity (more complex = potentially more distinctive)
+        pattern_complexity:     float = self._calculate_pattern_complexity_(candidate)
+        
+        # Factor 2: Binding diversity (more diverse bindings = more general pattern)
+        binding_diversity:      float = self._calculate_binding_diversity_(candidate)
+        
+        # Factor 3: Predictive power (better than random = more distinctive)
+        predictive_power:       float = max(0.0, candidate.confidence - 0.5) * 2.0  # Normalize to 0-1
+        
+        # Combine factors with equal weights
+        distinctiveness_score:  float = (pattern_complexity + binding_diversity + predictive_power) / 3.0
+        
+        # Ensure score is in valid range
+        return max(0.0, min(1.0, distinctiveness_score))
     
     def _create_predicate_(self,
         candidate:  Candidate
