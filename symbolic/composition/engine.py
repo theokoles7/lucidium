@@ -81,18 +81,43 @@ class CompositionEngine():
         candidate:  Candidate
     ) -> float:
         """# Calculate Co-Occurence.
+    
+        Calculate how often the component predicates co-occur together.
         
-        Calculate how often the component predicates co-occur.
+        This measures the statistical strength of the pattern by analyzing how frequently the 
+        component predicates appear together compared to their individual appearance rates.
 
         ## Args:
             * candidate (Candidate):    Candidate whose co-occurence is being calculated.
 
         ## Returns:
-            * float:    Co-occurence score for candidate.
+            * float:    Co-occurrence score between 0.0 and 1.0
+                * 1.0:  Predicates always appear together when pattern is relevant
+                * 0.5:  Random co-occurrence
+                * 0.0:  Predicates never appear together
         """
-        # TODO: Implement co-occurrence calculation. This would analyze the frequency of component 
-        # predicate combinations.
-        return 0.5
+        # Get all instances where this pattern was observed.
+        all_instances:          List[Dict[str, Any]] =  candidate.positive_instances + \
+                                                        candidate.negative_instances
+        
+        # If there are no instances, there is no co-occurrence.
+        if len(all_instances) == 0: return 0.0
+        
+        # Count how many instances have all required predicates present.
+        complete_pattern_count: int =                   0
+        
+        # For each instance provided...
+        for instance in all_instances:
+            
+            # Check if all expected predicates are present in this instance.
+            matched_predicates:     List[Predicate] =   instance.get('matched_predicates', [])
+            expected_components:    int =               len(candidate.pattern.component_patterns)
+            
+            # If all pattern components were matched, count as complete.
+            if len(matched_predicates) >= expected_components: complete_pattern_count += 1
+        
+        # Co-occurrence is the ratio of complete patterns to total observations.
+        return complete_pattern_count / len(all_instances)
     
     def _calculate_distinctiveness_(self,
         candidate:  Candidate
