@@ -255,6 +255,16 @@ class PredicateSignature():
         # If the types match, then they are of course compatible.
         if variable_type == expected_type: return True
         
+        # Handle numbered object types (object1, object2, etc.) - they're all compatible with "object"
+        if (variable_type == "object" and expected_type.startswith("object")) or \
+           (expected_type == "object" and variable_type.startswith("object")):
+            return True
+            
+        # Handle numbered event types (event1, event2, etc.) - they're all compatible with "event"  
+        if (variable_type ==  "event" and expected_type.startswith("event")) or \
+           (expected_type ==  "event" and variable_type.startswith("event")):
+            return True
+        
         #Otherwise, define compatibility map...
         compatibility_rules:    Dict[str, Set[str]] =   {
                                                             "action":           {"event", "operation"},
