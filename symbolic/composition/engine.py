@@ -5,14 +5,14 @@ Define engine for discovering and creating composite predicates.
 
 from itertools                          import product
 from re                                 import findall, match, Match
-from typing                             import Any, Dict, List, Set, Tuple
+from typing                             import Any, Dict, List, Optional, Set, Tuple
 
 from symbolic.composition.candidate     import Candidate
 from symbolic.composition.pattern       import Pattern
 from symbolic.composition.signature     import CompositePredicateSignature
 from symbolic.composition.type          import CompositionType
 from symbolic.composition.validation    import Validator
-from symbolic.logic                     import PredicateExpression
+from symbolic.logic                     import CompoundExpression, Expression, Operator, PredicateExpression, Variable
 from symbolic.predicate                 import Predicate, PredicateCategory, PredicateSet, PredicateSignature, PredicateVocabulary
 
 class CompositionEngine():
@@ -76,6 +76,36 @@ class CompositionEngine():
         
         # Initialize with common composition patterns.
         self._initialize_common_patterns_()
+        
+    def _build_logical_definition_(self,
+        pattern:    Pattern,
+        match:      Dict[str, Any]
+    ) -> Expression:
+        """# Build Logical Definition.
+    
+        Build a logical definition from a composition pattern and variable bindings.
+        
+        This creates the formal logical expression that represents the discovered composition. 
+        
+        ## Examples:
+        - Pattern: ["near(?agent, ?obj)", "color(?obj, red)"]  
+        - Result: AND(near(?agent, ?obj), color(?obj, red))
+
+        ## Args:
+            * pattern   (Pattern):          Composition pattern.
+            * match     (Dict[str, Any]):   Variable bindings and match information.
+
+        ## Returns:
+            * Expression:   Complete logical definition of composition.
+        """
+        # Combine expressions according to composition type.
+        return  self._combine_expressions_(
+                    # Parse component patterns into logical expressions.
+                    expressions =       self._parse_components_to_expressions_(
+                                            component_patterns =    pattern.component_patterns
+                                        ),
+                    composition_type =  pattern.composition_type
+                )
 
     def _calculate_binding_diversity_(self,
         candidate:  Candidate
@@ -230,6 +260,74 @@ class CompositionEngine():
         # Average the complexities
         return (component_complexity + variable_complexity) / 2.0
     
+    def _combine_expressions_(self,
+        expressions:        List[Expression],
+        composition_type:   CompositionType
+    ) -> Expression:
+        """# Combine Expressions.
+    
+        Combine multiple expressions according to the composition type.
+
+        ## Args:
+            * expressions       (List[Expression]): Component expressions to combine.
+            * composition_type  (CompositionType):  How to combine them (AND, OR, etc.)
+
+        ## Returns:
+            * Expression:   Combined logical expression.
+        """
+        # If no expressions were provided, return a simple truth expression.
+        if len(expressions) == 0:               return  PredicateExpression(
+                                                            predicate = Predicate(
+                                                                            name =          "true",
+                                                                            arguments =     (),
+                                                                            confidence =    1.0
+                                                                        )
+                                                        )
+        
+        # If only one expression was provided, simply return that expression.
+        if len(expressions) == 1:               return  expressions[0]
+        
+        # Otherwise, match composition type.
+        match composition_type:
+            
+            # Conjunction.
+            case CompositionType.CONJUNCTION:   return  CompoundExpression(
+                                                            operator =  Operator.AND,
+                                                            operands =  expressions
+                                                        )
+            
+            # Disjunction.
+            case CompositionType.DISJUNCTION:   return  CompoundExpression(
+                                                            operator =  Operator.OR,
+                                                            operands =  expressions
+                                                        )
+            
+            # Conditional.
+            case CompositionType.CONDITIONAL:
+                
+                # Ensure that at least two operands are provided.
+                if len(expressions) >= 2:       return  CompoundExpression(
+                                                            operator =  Operator.IMPLIES,
+                                                            operands =  [
+                                                                            # Antecedent.
+                                                                            expressions[0],
+                                                                            
+                                                                            # Consequent.
+                                                                            expressions[1]
+                                                                                if len(expressions) == 2
+                                                                                else    CompoundExpression(
+                                                                                            operator =  Operator.AND,
+                                                                                            operands =  expressions[1:]
+                                                                                )
+                                                                        ]
+                                                        )
+                
+            # Default will be conjunction.
+            case _:                             return  CompoundExpression(
+                                                            operator =  Operator.AND,
+                                                            operands =  expressions
+                                                        )
+    
     def _create_predicate_(self,
         candidate:  Candidate
     ) -> None:
@@ -263,31 +361,35 @@ class CompositionEngine():
         match:      Dict[str, Any]
     ) -> None:
         """# Create New Candidate.
+    
+        Create a new composition candidate with proper logical definition.
+        
+        This method constructs the logical definition by:
+            1. Parsing the component patterns from the composition pattern
+            2. Creating logical expressions for each component
+            3. Combining them according to the composition type (AND, OR, etc.)
+            4. Creating a candidate with the complete logical definition
 
         ## Args:
             * pattern   (Pattern):          Composition pattern that matched.
             * match     (Dict[str, Any]):   Variable bindings for the match.
         """
-        # TODO: Create logical definition based on pattern and match.
-        
-        # For now, create a placeholder
-        logical_definition: PredicateExpression =   PredicateExpression(
-                                                        predicate = Predicate(
-                                                                        name =      "placeholder",
-                                                                        arguments = ("arg1",)
-                                                                    )
+        # Create proper logical definition based on pattern and match.
+        definition:         Expression =            self._build_logical_definition_(
+                                                        pattern =       pattern,
+                                                        match =         match
                                                     )
         
         # Create candidate.
         candidate:          Candidate =             Candidate(
                                                         pattern =       pattern,
-                                                        definition =    logical_definition
+                                                        definition =    definition
                                                     )
         
-        # Extract key.
+        # Extract key for storing candidate.
         candidate_key:      str =                   self._get_candidate_key_(
-                                                        pattern =   pattern,
-                                                        match =     match
+                                                        pattern =       pattern,
+                                                        match =         match
                                                     )
         
         # Add candidate to list.
@@ -295,6 +397,45 @@ class CompositionEngine():
         
         # Update discovery statistics.
         self._statistics_['total_candidates_created'] += 1
+        
+    def _create_variable_with_type_inference_(self,
+        variable_name:      str,
+        context_patterns:   List[str]
+    ) -> Variable:
+        """# Create Variable with Type Inference.
+    
+        Create a Variable object with inferred type based on context.
+
+        ## Args:
+            * variable_name     (str):          Variable name (without prefix).
+            * context_patterns  (List[str]):    All patterns for context analysis.
+
+        ## Returns:
+            * Variable: Variable with appropriate type annotation.
+        """
+        # Infer type from variable name.
+        if      "agent"     in variable_name.lower():   variable_type:  str =   "agent"
+        elif    "obj"       in variable_name.lower():   variable_type:  str =   "object"
+        elif    "location"  in variable_name.lower() \
+            or  "pos"       in variable_name.lower():   variable_type:  str =   "location"
+        elif    "value"     in variable_name.lower():   variable_type:  str =   "value"
+        elif    any(
+                color       in variable_name.lower()
+                for color
+                in  [
+                        "color",
+                        "red",
+                        "blue",
+                        "green"
+                    ]
+                ):                                      variable_type:  str =   "color_value"
+        else:                                           variable_type:  str =   "object"
+        
+        # Provide variable.
+        return  Variable(
+                    name =          variable_name,
+                    variable_type = variable_type
+                )
         
     def _evaluate_candidates_(self) -> None:
         """# Evaluate Candidates.
@@ -674,6 +815,133 @@ class CompositionEngine():
         
         # Provide mapping.
         return templates
+    
+    def _parse_components_to_expressions_(self,
+        component_patterns: List[str]
+    ) -> List[Expression]:
+        """# Parse Component to Expressions.
+    
+        Convert component pattern strings into logical expressions.
+
+        ## Args:
+            * component_patterns    (List[str]):    Pattern strings like ["near(?agent, ?obj)", 
+                                                    "color(?obj, red)"]
+
+        ## Returns:
+            * List[Expression]: List of logical expressions.
+        """
+        # Initialize list of expressions.
+        expressions:    List[Expression] =  []
+        
+        # For each pattern provided...
+        for pattern_string in component_patterns:
+            
+            # Set flag indicating if pattern is negation.
+            negated:                bool =                  pattern_string.startswith("¬")
+            
+            # If pattern was negation, remove negation symbol.
+            if negated: pattern_string =                    pattern_string[1:].strip()
+            
+            # Parse the predicate structure.
+            predicate_expression:   Optional[Expression] =  self._parse_predicate_pattern_(
+                                                                pattern_string =    pattern_string
+                                                            )
+            
+            # If predicate expression was parsed...
+            if predicate_expression is not None:
+                
+                # If negation was detected...
+                if negated:
+                    
+                    # Apply negation.
+                    predicate_expression =                  CompoundExpression(
+                                                                operator =  Operator.NOT,
+                                                                operands =  [predicate_expression]
+                                                            )
+                    
+                # Add to list.
+                expressions.append(predicate_expression)
+        
+        # Provide expressions.
+        return expressions
+    
+    def _parse_predicate_pattern_(self,
+        pattern_string: str
+    ) -> Optional[Expression]:
+        """# Parse Predicate Pattern.
+    
+        Parse a single predicate pattern string into a logical expression.
+        
+        ## Examples:
+            * "near(?agent, ?obj)" -> PredicateExpression(near(?agent, ?obj))
+            * "color(?obj, red)" -> PredicateExpression(color(?obj, red))
+
+        ## Args:
+            * pattern_string    (str):  Pattern like "near(?agent, ?obj)"
+
+        ## Returns:
+            * Optional[Expression]: Predicate expression if match is found.
+        """
+        # Parse predicate structure.
+        pattern_match:          Optional[Match[str]] =  match(
+                                                            pattern =   r"(\w+)\s*\(([^)]*)\)",
+                                                            string =    pattern_string.strip()
+                                                        )
+        
+        # If no match was found, return nothing.
+        if not pattern_match: return None
+        
+        # Extract predicate name and argument strings.
+        predicate_name:         str =                   pattern_match.group(1)
+        arguments_string:       str =                   pattern_match.group(2)
+        
+        # Parse arguments.
+        arguments:              List[str] =             [
+                                                            argument.strip()
+                                                            for argument
+                                                            in arguments_string.split(",")
+                                                        ]                           \
+                                                        if arguments_string.strip() \
+                                                        else []
+                                                    
+        # Initialize list of processed arguments.
+        processed_arguments:    List[Any] =             []
+        
+        # For each argument...
+        for argument in arguments:
+            
+            # If the argument starts with ?, it's a variable.
+            if argument.startswith("?"):
+                
+                # Create variable object.
+                processed_arguments.append(
+                    Variable(
+                        name =          argument[1:],
+                        variable_type = "object"
+                    )
+                )
+                
+            # Otherwise, keep it as a constant.
+            else: processed_arguments.append(argument)
+            
+        try:# Return predicate with processed arguments.
+            return  PredicateExpression(
+                        name =          predicate_name,
+                        arguments =     tuple(processed_arguments),
+                        signature =     self._vocabulary_.get_signature(
+                                            name =  predicate_name
+                                        ),
+                        confidence =    1.0
+                    )
+        
+        # If an error occurs...  
+        except Exception as e:
+            
+            # Report the error.
+            print(f"""Error creating predicate for pattern "{pattern_string}": {e}""")
+            
+            # Return nothing.
+            return None
             
     def _pattern_match_valid_(self,
         pattern:    Pattern,
@@ -854,6 +1122,37 @@ class CompositionEngine():
                 
             # Otherwise, log errors preventing promotion.
             else: print(f"""Candidate {key} failed validation: {errors}""")
+            
+    def _validate_definition_(self,
+        definition: Expression,
+        pattern:    Pattern
+    ) -> bool:
+        """# Validate Definition.
+
+        ## Args:
+            * definition    (Expression):   The created logical definition.
+            * pattern       (Pattern):      Original pattern for validation.
+
+        ## Returns:
+            * bool:
+                * True:     Definition is valid.
+                * False:    Definition is not valid.
+        """
+        try:# Check that definition has the expected structure.
+            variables:  Set[Variable] = definition.get_variables()
+            
+            # Verify it has at least some variables (unless it's a constant pattern).
+            if      len(pattern.component_patterns) > 0 \
+                and len(variables) == 0: return False
+            
+            # Check that the expression is well-formed by attempting to convert to string.
+            str(definition)
+            
+            # All checks passed.
+            return True
+            
+        # Should any error occur, the definition is not valid.
+        except Exception: return False
             
     def _variable_binding_valid_(self,
         variable_name:  str,
