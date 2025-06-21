@@ -139,52 +139,52 @@ class PredicateVocabulary():
             
             # Spatial signatures ===================================================================
             
-            # Near.
+            # Near - FIXED: Use consistent "object" types
             PredicateSignature(
                 name =          "near",
-                arg_types =     ["object1", "object2"],
+                arg_types =     ["object", "object"],  # Changed from ["object1", "object2"]
                 category =      PredicateCategory.SPATIAL,
-                description =   "Object 1 is close to object 2."
+                description =   "First object is close to second object."
             ),
             
             # Above.
             PredicateSignature(
                 name =          "above",
-                arg_types =     ["object1", "object2"],
+                arg_types =     ["object", "object"],  # Changed from ["object1", "object2"]
                 category =      PredicateCategory.SPATIAL,
-                description =   "Object 1 is above object 2."
+                description =   "First object is above second object."
             ),
             
             # Under.
             PredicateSignature(
                 name =          "under",
-                arg_types =     ["object1", "object2"],
+                arg_types =     ["object", "object"],  # Changed from ["object1", "object2"]
                 category =      PredicateCategory.SPATIAL,
-                description =   "Object 1 is under object 2."
+                description =   "First object is under second object."
             ),
             
             # On.
             PredicateSignature(
                 name =          "on",
-                arg_types =     ["object1", "object2"],
+                arg_types =     ["object", "object"],  # Changed from ["object1", "object2"]
                 category =      PredicateCategory.SPATIAL,
-                description =   "Object 1 is on top of object 2."
+                description =   "First object is on top of second object."
             ),
             
             # Left of.
             PredicateSignature(
                 name =          "left_of",
-                arg_types =     ["object1", "object2"],
+                arg_types =     ["object", "object"],  # Changed from ["object1", "object2"]
                 category =      PredicateCategory.SPATIAL,
-                description =   "Object 1 is left of object 2."
+                description =   "First object is left of second object."
             ),
             
             # Right of.
             PredicateSignature(
                 name =          "right_of",
-                arg_types =     ["object1", "object2"],
+                arg_types =     ["object", "object"],  # Changed from ["object1", "object2"]
                 category =      PredicateCategory.SPATIAL,
-                description =   "Object 1 is right of object 2."
+                description =   "First object is right of second object."
             ),
             
             # Temporal signatures ==================================================================
@@ -192,17 +192,17 @@ class PredicateVocabulary():
             # Before.
             PredicateSignature(
                 name =          "before",
-                arg_types =     ["event1", "event2"],
+                arg_types =     ["event", "event"],    # Changed from ["event1", "event2"]
                 category =      PredicateCategory.TEMPORAL,
-                description =   "Event 1 occurs before event 2."
+                description =   "First event occurs before second event."
             ),
             
             # After.
             PredicateSignature(
                 name =          "after",
-                arg_types =     ["event1", "event2"],
+                arg_types =     ["event", "event"],    # Changed from ["event1", "event2"]
                 category =      PredicateCategory.TEMPORAL,
-                description =   "Event 1 occurs after event 2."
+                description =   "First event occurs after second event."
             ),
         ]:
             # Add signature to vocabulary.
@@ -325,7 +325,7 @@ class PredicateVocabulary():
         ## Returns:
             * PredicateSignature:   Predicate signature requested, if it exists.
         """
-        return self._signatures_.get(key = name)
+        return self._signatures_.get(name)
     
     def list_names(self) -> List[str]:
         """# List Names.

@@ -413,12 +413,39 @@ class CompositionEngine():
         ## Returns:
             * Variable: Variable with appropriate type annotation.
         """
-        # Infer type from variable name.
-        if      "agent"     in variable_name.lower():   variable_type:  str =   "agent"
-        elif    "obj"       in variable_name.lower():   variable_type:  str =   "object"
+        # For each pattern provided...
+        for pattern in context_patterns:
+            
+            # Analyze context to determine more specific types
+            if f"?{variable_name}" in pattern:
+                
+                # Special handling for color predicate
+                if "color(" in pattern:
+                    
+                    # Parse the color pattern to determine argument positions
+                    color_match = match(r"color\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)", pattern)
+                    
+                    # If match was found...
+                    if color_match:
+                        
+                        # If this variable is the second argument in color(), it should be color_value
+                        if color_match.group(2).strip() ==      f"?{variable_name}":   return   Variable(
+                                                                                                    name =          variable_name,
+                                                                                                    variable_type = "color_value"
+                                                                                                )
+                        
+                        # If it's the first argument, it should be object
+                        elif color_match.group(1).strip() ==    f"?{variable_name}":  return    Variable(
+                                                                                                    name =          variable_name,
+                                                                                                    variable_type = "object"
+                                                                                                )
+        
+        # Infer type from variable name
+        if      "agent"     in variable_name.lower():   variable_type:  str =   "object"
+        elif    "obj"       in variable_name.lower():   variable_type:  str =   "object" 
         elif    "location"  in variable_name.lower() \
             or  "pos"       in variable_name.lower():   variable_type:  str =   "location"
-        elif    "value"     in variable_name.lower():   variable_type:  str =   "value"
+        elif    "value"     in variable_name.lower():   variable_type:  str =   "color_value"  # Default to color_value for ?value
         elif    any(
                 color       in variable_name.lower()
                 for color
@@ -913,25 +940,25 @@ class CompositionEngine():
             # If the argument starts with ?, it's a variable.
             if argument.startswith("?"):
                 
-                # Create variable object.
-                processed_arguments.append(
-                    Variable(
-                        name =          argument[1:],
-                        variable_type = "object"
-                    )
-                )
+                # Create variable object with proper type inference.
+                processed_arguments.append(self._create_variable_with_type_inference_(
+                    variable_name =     argument[1:],
+                    context_patterns =  [pattern_string]
+                ))
                 
             # Otherwise, keep it as a constant.
             else: processed_arguments.append(argument)
             
         try:# Return predicate with processed arguments.
             return  PredicateExpression(
-                        name =          predicate_name,
-                        arguments =     tuple(processed_arguments),
-                        signature =     self._vocabulary_.get_signature(
-                                            name =  predicate_name
-                                        ),
-                        confidence =    1.0
+                        predicate = Predicate(
+                                        name =          predicate_name,
+                                        arguments =     tuple(processed_arguments),
+                                        signature =     self._vocabulary_.get_signature(
+                                                            name =  predicate_name
+                                                        ),
+                                        confidence =    1.0
+                                    )
                     )
         
         # If an error occurs...  

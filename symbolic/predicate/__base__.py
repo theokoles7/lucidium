@@ -84,7 +84,11 @@ class Predicate():
         """
         return  Predicate(
                     name =          self.name,
-                    arguments =          tuple(bindings.get(arg, arg) for arg in self.arguments),
+                    arguments =     tuple(
+                                        bindings.get(arg, arg)
+                                        for arg
+                                        in self.arguments
+                                    ),
                     signature =     self.signature,
                     confidence =    self.confidence
                 )
