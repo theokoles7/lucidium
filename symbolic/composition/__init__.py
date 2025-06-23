@@ -5,7 +5,6 @@ This package defines the various symbolic composition and reasoning functionalit
 
 __all__ =   [
                 # Components & taxonomies.
-                "Candidate",
                 "CompositionType",
                 "Pattern",
                 "PredicateSignature",
@@ -15,7 +14,6 @@ __all__ =   [
                 "Validator"
             ]
 
-from symbolic.composition.candidate     import Candidate
 from symbolic.composition.pattern       import Pattern
 from symbolic.composition.signature     import PredicateSignature
 from symbolic.composition.type          import CompositionType

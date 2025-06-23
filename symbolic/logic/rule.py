@@ -4,7 +4,7 @@ Define structure of logical rule representing antecedent -> consequent patterns.
 """
 
 from re                         import match
-from typing                     import Any, Dict, List, Optional, Set
+from typing                     import Any, Dict, List, Optional, Set, Tuple
 
 from symbolic.logic.expressions import CompoundExpression, Expression, PredicateExpression
 from symbolic.logic.variable    import Variable
@@ -106,42 +106,56 @@ class Rule():
         ## Returns:
             * Dict[Variable, Set[Any]]: Reduced domains after constraint propagation.
         """
-        # Copt domains for modification.
-        propagated_domains: Dict[Variable, Set[Any]] =  {
-                                                            variable: domain.copy()
-                                                            for variable, domain
-                                                            in domains.items()
-                                                        }
+        # Copy domains for modification.
+        propagated_domains: Dict[Variable, Set[Any]] =          {
+                                                                    variable: domain.copy()
+                                                                    for variable, domain
+                                                                    in domains.items()
+                                                                }
         
-        # Initialize looping constraints.
-        changed:            bool =                      True
-        iterations:         int =                       0
-        max_iterations:     int =                       10
+        # Initialize AC-3 algorithm state
+        arc_queue:          List[Tuple[Variable, Variable]] =   []
         
-        # While changes are occuring...
-        while changed and iterations < max_iterations:
+        # Build initial arc queue (all pairs of variables that share constraints).
+        variables:          List[str] =                         list(propagated_domains.keys())
+        
+        # For each variable...
+        for i, var1 in enumerate(variables):
             
-            # Set flag and manage iteration counter.
-            changed =       False
-            iterations +=   1
+            # For each variable after current...
+            for var2 in variables[i+1:]:
+                
+                # If variables share constraint...
+                if self._variables_share_constraint_(var1, var2):
+                    
+                    # Add them to queue.
+                    arc_queue.append((var1, var2))
+                    arc_queue.append((var2, var1))
+        
+        # AC-3 algorithm
+        while arc_queue:
             
-            # For each variable in domains...
-            for variable in propagated_domains:
+            # Pop variables from queue.
+            var_i, var_j = arc_queue.pop(0)
+            
+            # If variables
+            if self._revise_domain_(
+                variable_i =    var_i,
+                variable_j =    var_j,
+                domains =       propagated_domains,
+                predicate_set = predicate_set
+            ):
                 
-                # Record original size for reference.
-                original_size:  int =           len(propagated_domains[variable])
-                
-                # Apply arc consistency.
-                propagated_domains[variable] =  self._apply_arc_consistency_(
-                                                    variable =      variable,
-                                                    domains =       propagated_domains,
-                                                    predicate_set = predicate_set
-                                                )
-                
-                # Set flag based on if domain was changed.
-                changed =                       (len(propagated_domains[variable]) < original_size)
-                
-        # Provide proagated domains.
+                # If domain is empty, no solutions are possible.
+                if not propagated_domains[var_i]: return {}
+                    
+                # Add all arcs (var_k, var_i) for var_k != var_i, var_j
+                for var_k in propagated_domains:
+                    if var_k != var_i and var_k != var_j:
+                        if self._variables_share_constraint_(var_k, var_i):
+                            arc_queue.append((var_k, var_i))
+        
+        # Provide constrained domains.
         return propagated_domains
     
     def _apply_structural_constraints_(self,
@@ -487,9 +501,9 @@ class Rule():
                                                                 domains =       variable_domains,
                                                                 predicate_set = predicate_set
                                                             )
-                                     
+                                    
         # 4: Use backtracking search to find valid bindings.
-        valid_bindings:         List[Dict[Variable, Any]] = self._backtrack_search_(
+        valid_bindings:         List[Dict[Variable, Any]] = self._backtrack_search_with_unification_(
                                                                 variables =     list(variables),
                                                                 domains =       constrained_domains,
                                                                 predicate_set = predicate_set
@@ -514,6 +528,34 @@ class Rule():
         """
         # Extract values from all predicates in the set.
         return set().union(*(predicate.arguments for predicate in predicate_set))
+    
+    def _extract_predicate_expressions_(self,
+        expression: Expression
+    ) -> List[PredicateExpression]:
+        """# Extract Predicate Expressions.
+        
+        Extract all predicate expressions from a compound expression.
+
+        ## Args:
+            * expression    (Expression):   Expression from which predicates will be extracted.
+
+        ## Returns:
+            * List[PredicateExpression]:    List of predicates from expression.
+        """
+        # If predicate expression, simply return expression.
+        if isinstance(expression, PredicateExpression):     return  [expression]
+        
+        # If compound expression...
+        elif isinstance(expression, CompoundExpression):    return  [
+                                                                        self._extract_predicate_expressions_(
+                                                                            expression =    operand
+                                                                        )
+                                                                        for operand
+                                                                        in expression.operands
+                                                                    ]
+        
+        # Otherwise, return empty list.
+        return []
     
     def _filter_by_type_(self,
         domain:         Set[Any],
@@ -695,6 +737,68 @@ class Rule():
         # Otherwise, check if there's a way to bind remaining variables.
         # TODO: This requires a more sophisticated analysis.
         return True
+    
+    def _revise_domain_(self,
+        variable_i:     Variable,
+        variable_j:     Variable,
+        domains:        Dict[Variable, Set[Any]],
+        predicate_set:  PredicateSet
+    ) -> bool:
+        """# Revise Domain.
+        
+        Revise domain of var_i by removing values that have no support in var_j's domain.
+
+        ## Args:
+            * variable_i    (Variable):     Variable whose domain is being revised.
+            * variable_j    (Variable):     Variable who will be removed from domain.
+            * domains       (Dict[Variable, Set[Any]]): Domain of first variable.
+            * predicate_set (PredicateSet): Current predicate set.
+
+        ## Returns:
+            * bool:
+                * True:     Domain has been revised.
+                * False:    Domain was not revised.
+        """
+        # Set flag to indicate if domain is revised, and initialize list of values to remove.
+        revised:            bool =      False
+        values_to_remove:   Set[Any] =  set()
+        
+        # For each value of i...
+        for value_i in domains[variable_i]:
+            
+            # Set flag to indicate support being found.
+            has_support:    bool =  False
+            
+            # For each value of j..
+            for value_j in domains[variable_j]:
+                
+                # Check if this combination is consistent with constraints
+                if self._values_are_consistent_(
+                    variable_i =    variable_i,
+                    value_i =       value_i,
+                    variable_j =    variable_j,
+                    value_j =       value_j,
+                    predicate_set = predicate_set
+                ):
+                    
+                    # Value has support.
+                    has_support = True
+                    break
+            
+            # If support was not confirmed...
+            if not has_support:
+                
+                # Add to list of values being removed.
+                values_to_remove.add(value_i)
+                
+                # Indicate that domain has been revised.
+                revised = True
+        
+        # Remove variable not supported.
+        domains[variable_i] -= values_to_remove
+        
+        # Provide (revised) domain.
+        return revised
         
     def _value_has_support_(self,
         variable:       Variable,
@@ -877,6 +981,97 @@ class Rule():
             
         # Otherwise, all bindings can potentially lead to matches.
         return True
+    
+    def _variables_are_consistent_(self,
+        variable_i:     Variable,
+        variable_j:     Variable,
+        value_i:        Any,
+        value_j:        Any,
+        predicate_set:  PredicateSet
+    ) -> bool:
+        """# Are Variables Consistent?
+        
+        Check if two variable-value assignments are consistent with constraints.
+
+        ## Args:
+            * variable_i    (Variable):     First variable being checked.
+            * variable_j    (Variable):     Second variable being checked.
+            * value_i       (Any):          Value of variable 1.
+            * value_j       (Any):          Value of variable 2.
+            * predicate_set (PredicateSet): Current predicate set.
+
+        ## Returns:
+            bool:
+                * True:     Variable are consistent.
+                * False:    Variables are not consistent.
+        """
+        # Initialize partial assignment.
+        partial_assignment: Dict[Variable, Any] =   {
+                                                        variable_i: value_i,
+                                                        variable_j: value_j
+                                                    }
+    
+        # Find predicates that involve both variables
+        shared_predicates = []
+        predicate_expressions = self._extract_predicate_expressions_(self.antecedent)
+        
+        for pred_expr in predicate_expressions:
+            variables_in_predicate = pred_expr.get_variables()
+            if var_i in variables_in_predicate and var_j in variables_in_predicate:
+                shared_predicates.append(pred_expr)
+        
+        # Check if partial assignment satisfies shared constraints
+        for pred_expr in shared_predicates:
+            try:
+                # Apply partial substitution
+                partially_bound = pred_expr.substitute(partial_assignment)
+                
+                # If fully grounded, check if it exists in predicate set
+                if not partially_bound.get_variables():
+                    if not partially_bound.evaluate(predicate_set):
+                        return False
+                # If still has variables, check if it could potentially be satisfied
+                else:
+                    if not self._could_be_satisfied_(partially_bound, predicate_set):
+                        return False
+            except:
+                return False
+        
+        return True
+    
+    def _variables_share_constraint_(self,
+        variable_1: Variable,
+        variable_2: Variable
+    ) -> bool:
+        """# Do Variables Share Constraint?
+
+        ## Args:
+            * variable_1    (Variable): First variable.
+            * variable_2    (Variable): Second variable.
+
+        ## Returns:
+            * bool:
+                * True:     Variables share constraint.
+                * False:    Variables do not share constraint.
+        """
+        # Extract all predicate expressions from antecedent
+        predicate_expressions = self._extract_predicate_expressions_(self.antecedent)
+        
+        # For each expression extractedl...
+        for expression in predicate_expressions:
+            
+            # Extract its variables.
+            variables_in_predicate = expression.get_variables()
+            
+            # If both variables are included in predicate...
+            if  variable_1 in variables_in_predicate and \
+                variable_2 in variables_in_predicate: 
+                    
+                # Variable share constraint.
+                return True
+            
+        # Variable do not share constraint.
+        return False
         
     @property
     def antecedent(self) -> Expression:

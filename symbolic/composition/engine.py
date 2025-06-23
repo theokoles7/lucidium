@@ -7,7 +7,7 @@ from itertools                          import product
 from re                                 import findall, match, Match
 from typing                             import Any, Dict, List, Optional, Set, Tuple
 
-from symbolic.composition.candidate     import Candidate
+from symbolic.candidate                 import Candidate
 from symbolic.composition.pattern       import Pattern
 from symbolic.composition.signature     import CompositePredicateSignature
 from symbolic.composition.type          import CompositionType

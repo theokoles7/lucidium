@@ -3,11 +3,11 @@
 Validate composition rules and ensure they make logical sense.
 """
 
-from typing                         import List, Tuple
+from typing             import List, Tuple
 
-from symbolic.composition.candidate import Candidate
-from symbolic.logic                 import CompoundExpression, Expression
-from symbolic.predicate             import PredicateSignature, PredicateVocabulary
+from symbolic.candidate import Candidate
+from symbolic.logic     import CompoundExpression, Expression
+from symbolic.predicate import PredicateSignature, PredicateVocabulary
 
 class Validator():
     """# Validator.

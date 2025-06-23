@@ -48,6 +48,7 @@ __all__ =   [
                 "PredicateVocabulary"
             ]
 
+from symbolic.candidate     import *
 from symbolic.composition   import *
 from symbolic.logic         import *
 from symbolic.predicate     import *
