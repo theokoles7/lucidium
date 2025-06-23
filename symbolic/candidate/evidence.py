@@ -3,6 +3,8 @@
 Manage evidence collection and storage for composition candidates.
 """
 
+__all__ = ["Evidence"]
+
 from typing import Any, Dict, List
 
 class Evidence():

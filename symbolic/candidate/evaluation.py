@@ -3,6 +3,8 @@
 Evaluate composition candidates using statistical metrics.
 """
 
+__all__ = ["Evaluator"]
+
 from re import findall
 from typing import Any, Dict, List, Set
 
@@ -170,17 +172,13 @@ class Evaluator():
             * float:    Complexity calculation, between 0.0 and 1.0.
         """
         return  (
-                    min(
-                        1.0,
-                        len(pattern_components) / 5.0
-                    ) + 
-                    min(
-                        1.0,
-                        len(set(
-                            findall(r'\?(\w+)', component)
-                            for component
-                            in pattern_components
-                        )) / 8.0)
+                    min(1.0, len(pattern_components) / 5.0) + 
+                    min(1.0, len(set(
+                        var 
+                        for component in pattern_components 
+                        for var 
+                        in findall(r'\?(\w+)', component)
+                    )) / 8.0)
                 ) / 2.0
                 
     def calculate_utility(self,

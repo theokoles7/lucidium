@@ -191,7 +191,7 @@ class Validator():
         errors: List[str] = []
         
         # 1. Check statistical criteria.
-        if not candidate.meets_criteria:
+        if not candidate.meets_promotion_criteria:
             
             # Append error.
             errors.append(f"""Insufficient statistical support: {candidate.support} instances with {candidate.confidence:.2f} confidence.""")

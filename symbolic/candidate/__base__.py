@@ -3,7 +3,9 @@
 Define structure and functionality for a candidate solution in the symbolic search space.
 """
 
-from typing                             import Any, Dict, TYPE_CHECKING
+__all__ = ["Candidate"]
+
+from typing                             import Any, Dict, List, TYPE_CHECKING
 
 from symbolic.candidate.evaluation      import Evaluator
 from symbolic.candidate.evidence        import Evidence
@@ -67,6 +69,20 @@ class Candidate():
     # PROPERTIES ===================================================================================
     
     @property
+    def binding_diversity(self) -> float:
+        """# Binding Diversity.
+        
+        Measures how many different variable binding combinations this pattern covers. Higher 
+        diversity indicates a more generalizable pattern.
+        
+        Mathematical basis: Entropy of the binding distribution.
+        """
+        return  self._evaluator_.calculate_binding_diversity(
+                    evidence_instances =    self.negative_evidence + \
+                                            self.positive_evidence
+                )
+    
+    @property
     def co_occurrence(self) -> float:
         """# Co-Occurrence.
         
@@ -121,12 +137,38 @@ class Candidate():
                 )
     
     @property
+    def negative_evidence(self) -> List[Dict[str, Any]]:
+        """# Negative Evidence.
+
+        List of negative evidence instances recorded thus far.
+        """
+        return self._evidence_.negative_instances
+    
+    @property
     def pattern(self) -> "Pattern":
         """# Pattern.
         
         The pattern template that defines the structure of this composition hypothesis.
         """
         return self._pattern_
+    
+    @property
+    def pattern_complexity(self) -> float:
+        """# Pattern Complexity.
+
+        Depth of pattern compositions.
+        """
+        return  self._evaluator_.calculate_pattern_complexity(
+                    pattern_components =    self.pattern.component_patterns
+                )
+    
+    @property
+    def positive_evidence(self) -> List[Dict[str, Any]]:
+        """# Positive Evidence.
+
+        List of positive evidence instances recorded thus far.
+        """
+        return self._evidence_.positive_instances
     
     @property
     def support(self) -> int:

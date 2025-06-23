@@ -107,55 +107,45 @@ class Rule():
             * Dict[Variable, Set[Any]]: Reduced domains after constraint propagation.
         """
         # Copy domains for modification.
-        propagated_domains: Dict[Variable, Set[Any]] =          {
-                                                                    variable: domain.copy()
-                                                                    for variable, domain
-                                                                    in domains.items()
-                                                                }
+        propagated_domains: Dict[Variable, Set[Any]] =  {
+                                                            variable: domain.copy()
+                                                            for variable, domain in domains.items()
+                                                        }
         
-        # Initialize AC-3 algorithm state
-        arc_queue:          List[Tuple[Variable, Variable]] =   []
-        
+        # For simple constraint propagation, we'll use arc consistency.
         # Build initial arc queue (all pairs of variables that share constraints).
-        variables:          List[str] =                         list(propagated_domains.keys())
+        variables_list = list(propagated_domains.keys())
         
-        # For each variable...
-        for i, var1 in enumerate(variables):
+        # Initialize changed flag for iterative refinement
+        changed:            bool =                      True
+        iterations:         int =                       0
+        max_iterations:     int =                       10
+        
+        # While domain is still being changed...
+        while changed and iterations < max_iterations:
             
-            # For each variable after current...
-            for var2 in variables[i+1:]:
+            # Initial condition is that it is not changed, yet.
+            changed =       False
+            
+            # Increment iteration count.
+            iterations +=   1
+            
+            # For each variable, apply arc consistency.
+            for variable in variables_list:
+                original_size = len(propagated_domains[variable])
+                propagated_domains[variable] = self._apply_arc_consistency_(
+                    variable=variable,
+                    domains=propagated_domains,
+                    predicate_set=predicate_set
+                )
                 
-                # If variables share constraint...
-                if self._variables_share_constraint_(var1, var2):
+                if len(propagated_domains[variable]) < original_size:
+                    changed = True
                     
-                    # Add them to queue.
-                    arc_queue.append((var1, var2))
-                    arc_queue.append((var2, var1))
+                # If domain becomes empty, no solution exists
+                if not propagated_domains[variable]:
+                    return {}
         
-        # AC-3 algorithm
-        while arc_queue:
-            
-            # Pop variables from queue.
-            var_i, var_j = arc_queue.pop(0)
-            
-            # If variables
-            if self._revise_domain_(
-                variable_i =    var_i,
-                variable_j =    var_j,
-                domains =       propagated_domains,
-                predicate_set = predicate_set
-            ):
-                
-                # If domain is empty, no solutions are possible.
-                if not propagated_domains[var_i]: return {}
-                    
-                # Add all arcs (var_k, var_i) for var_k != var_i, var_j
-                for var_k in propagated_domains:
-                    if var_k != var_i and var_k != var_j:
-                        if self._variables_share_constraint_(var_k, var_i):
-                            arc_queue.append((var_k, var_i))
-        
-        # Provide constrained domains.
         return propagated_domains
     
     def _apply_structural_constraints_(self,
@@ -322,7 +312,7 @@ class Rule():
                 * variable_index    (int):                  Variable index to begin search at.
             """
             # Base Case: All variables assigned.
-            if variable_index == len(variables):
+            if variable_index >= len(variables):
                 
                 # If assignment satisfies antecedent...
                 if self.antecedent.evaluate(
@@ -332,11 +322,18 @@ class Rule():
                     # Append to valid assignments.
                     valid_assignments.append(assignment.copy())
                     
-                    # Return from recursion.
-                    return
+                # Return from recursion.
+                return
                 
             # Otherwise, get value at index.
             current_value:  Variable =  variables[variable_index]
+            
+            # Check if this variable exists in domains.
+            if current_value not in domains:
+                
+                # Skip variables not in domains
+                backtrack(assignment, variable_index + 1)
+                return
             
             # For each value in the domain...
             for value in domains[current_value]:
@@ -484,6 +481,9 @@ class Rule():
         # If no variables are provided, no bindings can be created.
         if not variables: return [{}]
         
+        # Convert to list to ensure consistent ordering.
+        variables_list:         List[Variable] =            list(variables)
+        
         # 1: Extract all possible values from predicate set.
         all_values:             Set[Any] =                  self._extract_domain_values_(
                                                                 predicate_set = predicate_set
@@ -491,7 +491,7 @@ class Rule():
         
         # 2: Build initial domains for each variable based on type constraints.
         variable_domains:       Dict[Variable, Set[Any]] =  self._build_variable_domains_(
-                                                                variables =     variables,
+                                                                variables =     set(variables_list),
                                                                 all_values =    all_values,
                                                                 predicate_set = predicate_set
                                                             )
@@ -503,8 +503,8 @@ class Rule():
                                                             )
                                     
         # 4: Use backtracking search to find valid bindings.
-        valid_bindings:         List[Dict[Variable, Any]] = self._backtrack_search_with_unification_(
-                                                                variables =     list(variables),
+        valid_bindings:         List[Dict[Variable, Any]] = self._backtrack_search_(
+                                                                variables =     variables_list,
                                                                 domains =       constrained_domains,
                                                                 predicate_set = predicate_set
                                                             )
@@ -546,13 +546,19 @@ class Rule():
         if isinstance(expression, PredicateExpression):     return  [expression]
         
         # If compound expression...
-        elif isinstance(expression, CompoundExpression):    return  [
-                                                                        self._extract_predicate_expressions_(
-                                                                            expression =    operand
-                                                                        )
-                                                                        for operand
-                                                                        in expression.operands
-                                                                    ]
+        elif isinstance(expression, CompoundExpression):    
+            
+            # Then initialize list of expressions.
+            expressions:    List[Expression] =  []
+            
+            # For each operand...
+            for operand in expression.operands:
+                
+                # Add its components to the list.
+                expressions.extend(self._extract_predicate_expressions_(expression = operand))
+            
+            # Provide the extracted list.
+            return  expressions
         
         # Otherwise, return empty list.
         return []
@@ -773,7 +779,7 @@ class Rule():
             for value_j in domains[variable_j]:
                 
                 # Check if this combination is consistent with constraints
-                if self._values_are_consistent_(
+                if self._variables_are_consistent_(
                     variable_i =    variable_i,
                     value_i =       value_i,
                     variable_j =    variable_j,
@@ -1017,7 +1023,7 @@ class Rule():
         
         for pred_expr in predicate_expressions:
             variables_in_predicate = pred_expr.get_variables()
-            if var_i in variables_in_predicate and var_j in variables_in_predicate:
+            if variable_i in variables_in_predicate and variable_j in variables_in_predicate:
                 shared_predicates.append(pred_expr)
         
         # Check if partial assignment satisfies shared constraints

@@ -3,6 +3,8 @@
 Validate pattern relevance and promotion criteria for composition candidates.
 """
 
+__all__ = ["Validator"]
+
 from re                                 import match, Match
 from typing                             import List, TYPE_CHECKING
 
