@@ -47,12 +47,14 @@ class Agent(ABC):
         self._state_space_:     Any =   state_space
         
     @abstractmethod
-    def select_action(self,
+    def act(self,
         state:  Any
     ) -> any:
-        """# Select Action
-        
-        The agent will choose an action based on the environment state observed.
+        """# Act.
+
+        Agent action is the first critical step in any reinforcement learning loop.
+
+        Given the current state of the environment, the agent decides on an action to perform.
 
         ## Args:
             * state (Any):  Current environment state.
@@ -63,23 +65,23 @@ class Agent(ABC):
         pass
     
     @abstractmethod
-    def load_model(self,
-        path:   str
+    def observe(self,
+        new_state:  Any,
+        reward:     float,
+        done:       bool
     ) -> None:
-        """# Load Agent Model.
+        """# Observe.
+        
+        Agent observation is the third critical step in any reinforcement learning loop.
+        
+        After the agent has submitted its action, the environment will return the new state, 
+        the reward, and a flag indicating if the agent has reached a terminal state. The 
+        agent will use this information to update its parameters accordingly.
 
         ## Args:
-            * path  (str):  Path at which model save file can be located/loaded.
-        """
-        pass
-    
-    @abstractmethod
-    def save_model(self,
-        path:   str
-    ) -> None:
-        """# Save Agent's Model.
-
-        ## Args:
-            * path  (str):  Path at which agent's model will be saved.
+            * new_state (Any):      State of environment after action was submitted.
+            * reward    (float):    Reward yielded/penalty incurred by action submitted to 
+                                    environment.
+            * done      (bool):     Flag indicating if new state is terminal.
         """
         pass
