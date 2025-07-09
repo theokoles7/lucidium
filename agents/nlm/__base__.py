@@ -1,4 +1,4 @@
-"""# ludorum.agents.nlm.base
+"""# lucidium.agents.nlm.base
 
 Implementation of Neural Logic Machine as presented in the 2019 paper by Honghua Dong et. al.
 
@@ -8,15 +8,16 @@ Source: https://github.com/google/neural-logic-machines
 """
 
 from logging            import Logger
-from typing             import List, override, Optional, Tuple
+from typing             import Any, List, override, Optional, Tuple
 
-from torch              import cat, load, save, Tensor
+from torch              import cat, load, no_grad, save, Tensor
 from torch.nn           import Module, ModuleList
 
+from agents.__base__    import Agent
 from agents.nlm.layers  import LogicLayer
 from utilities.logger   import get_child
 
-class NeuralLogicMachine(Module):
+class NeuralLogicMachine(Module, Agent):
     """# Neural Logic Machine
 
     Neural Logic Machine (NLM) is a neural-symbolic architecture for both inductive learning and 
@@ -183,6 +184,24 @@ class NeuralLogicMachine(Module):
         
     # METHODS ======================================================================================
     
+    @override
+    def act(self,
+        state:  Any
+    ) -> Any:
+        """# Select Action.
+
+        ## Args:
+            * state (Any):  Observation of current environment state.
+
+        ## Returns:
+            * Any:  Action chosen.
+        """
+        # Ensure module is in evaluation mode.
+        self.eval()
+        
+        # Forward pass.
+        with no_grad(): return self.forward(state)
+    
     def forward(self,
         inputs: List[Tensor],
         depth:  int =           None
@@ -286,10 +305,23 @@ class NeuralLogicMachine(Module):
         """# Load Agent Model.
 
         ## Args:
-            * path  (str):  Path at which model save file can be located/loaded.
+            * path  (str):  Path from which model save file can be located/loaded.
         """
         # Load model state from file.
         self.load_state_dict(load(path))
+        
+    @override
+    def observe(self,
+        new_state:  Any,
+        reward:     float,
+        done:       bool
+    ) -> None:
+        """# Observe.
+
+        Store the transition (if needed). For NLM, this is a placeholder unless batching is used.
+        """
+        # NLM is stateless unless using memory buffer.
+        pass
         
     @override
     def save_model(self,

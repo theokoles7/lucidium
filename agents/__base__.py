@@ -6,8 +6,7 @@ This module provides the base class for all agents in the Lucidium framework.
 __all__ = ["Agent"]
 
 from abc        import ABC, abstractmethod
-from logging    import Logger
-from typing     import Any
+from typing     import Any, List
 
 class Agent(ABC):
     """# Abstract Agent Class
@@ -26,25 +25,6 @@ class Agent(ABC):
         * save_model(path: str)     -> None:    Save the agent's model to the specified path.
         * load_model(path: str)     -> None:    Load the agent's model from the specified path.
     """
-    
-    def __init__(self,
-        action_space:   Any,
-        state_space:    Any,
-        **kwargs
-    ):
-        """# Initialize agent.
-
-        ## Args:
-            * action_space  (Any):  Actions possible within environment.
-            * state_space   (Any):  Quantification of possible states in which the environment can 
-                                    be observed.
-        """
-        # Declare logger member.
-        self.__logger__:        Logger
-        
-        # Define action and state space dimensions.
-        self._action_space_:    Any =   action_space
-        self._state_space_:     Any =   state_space
         
     @abstractmethod
     def act(self,
@@ -61,6 +41,17 @@ class Agent(ABC):
 
         ## Returns:
             * Any:  Chosen action.
+        """
+        pass
+    
+    @abstractmethod
+    def load_model(self,
+        path:   str
+    ) -> None:
+        """# Load Model.
+
+        ## Args:
+            * path  (str):  Path from which model save file will be loaded.
         """
         pass
     
@@ -83,5 +74,29 @@ class Agent(ABC):
             * reward    (float):    Reward yielded/penalty incurred by action submitted to 
                                     environment.
             * done      (bool):     Flag indicating if new state is terminal.
+        """
+        pass
+    
+    @abstractmethod
+    def save_model(self,
+        path:   str
+    ) -> None:
+        """# Save Model.
+
+        ## Args:
+            * path  (str):  Path to which model save file will be saved.
+        """
+        pass
+    
+    @abstractmethod
+    def train_model(self,
+        batch:  List[Any]
+    ) -> None:
+        """# Train Model.
+        
+        Update model using a batch of transitions or experiences.
+
+        ## Args:
+            * batch (List[Any]):    Batch of training samples.
         """
         pass
