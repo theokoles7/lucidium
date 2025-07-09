@@ -1,411 +1,207 @@
 """# lucidium.environments.tic_tac_toe.components.board
 
-Defines the Tic Tac Toe board component.
+Implementation of board component for tic-tac-toe.
 """
 
-from typing                                     import Any, Dict, Optional, List, Tuple
+from typing     import List, Tuple, Union
 
-from numpy                                      import any, ndarray, zeros
+from torch      import Tensor
 
-from environments.tic_tac_toe.components.glyphs import Glyphs
+from .cell      import Cell
 
 class Board():
     """# (Tic-Tac-Toe) Board
     
-    Represents the Tic Tac Toe board, which is a 3x3 grid where players can place their marks.
+    Board representation and utilities.
     """
     
     def __init__(self,
         size:   int =   3
     ):
-        """# Instantiate Tic-Tac-Toe Board
-        
+        """# Instanstiate Board.
+
         ## Args:
-            * size  (int, optional):    Size of the board (default is 3 for a standard Tic Tac Toe 
-                                        game).
+            * size  (int):  Dimension of (square) board. Maximum is 10. Defaults to 3.
         """
-        # Define board properties.
-        self._size_:            int =               size
+        # Assert that size is in range 3 - 10.
+        assert 3 <= size <= 10, f"Board size must be 3 - 10, got {size}"
         
-        # Initialize game state.
-        self._grid_:            ndarray =           zeros(shape = (size, size), dtype = int)
-        self._current_player_:  int =               1
+        # Define properties.
+        self._size_:    int =   size
         
-        # Define glyphs map.
-        self._glyphs_:          Dict[int, Glyphs] = {
-                                                        -1: Glyphs.O,
-                                                        0:  Glyphs.EMPTY,
-                                                        1:  Glyphs.X
-                                                    }
-        
-        # Initialize statistics.
-        self._move_count_:      int =               0
-        self._game_over_:       bool =              False
-        self._status_:          str =               "INCOMPLETE"
-        self._winner_:          Optional[int] =     None
+        # Instantiate cells.
+        self._grid_:    List[List[Cell]] =  [
+                                                [
+                                                    Cell(coordinate = (r, c)) 
+                                                    for c in range(self._size_)
+                                                ]
+                                                for r in range(self._size_)
+                                            ]
         
     # PROPERTIES ===================================================================================
     
     @property
-    def current_player(self) -> int:
-        """# Current Player (int)
-        
-        Returns 1 for player or -1 for opponent.
+    def available_moves(self) -> List[Tuple[int, int]]:
+        """# Available Moves
+
+        Coordinates of currently available moves.
         """
-        return self._current_player_
+        return [(r, c) for r in range(self._size_) for c in range(self._size_) if self._grid_[r][c].is_empty]
     
     @property
     def has_winner(self) -> bool:
-        """# (Board) Has Winner? (bool)
-
-        True if current player has won.
-        """
-        # For each possible winning line...
-        for line in self.winning_lines:
-            
-            # Return true if current player occupies all positions.
-            if all(self.grid[r, c] == self.current_player for r, c in line): return True
+        """# (Game) has Winner?
         
-        # Otherwise, player has not won.
-        return False
-    
-    @property
-    def is_draw(self) -> bool:
-        """# (Game) Is Draw? (bool)
-
-        True if game does not have a winner, but the board is full.
+        True if a player has won the game.
         """
-        return self.is_full and self.winner is None
+        return any(self._line_is_a_win_(line) for line in self.lines)
     
     @property
     def is_full(self) -> bool:
-        """# (Board) Is Full? (bool)
+        """# (Board) is Full?
 
-        Indicate if the board is full or not.
+        ## Returns:
+            * bool: True if no empty cells remain.
         """
-        return not any(self.grid == 0)
+        return all(not cell.is_empty for row in self._grid_ for cell in row)
     
     @property
-    def game_over(self) -> bool:
-        """# (Is) Game Over? (bool)
+    def lines(self) -> List[List[Cell]]:
+        """# (Board) Lines
 
-        True if game has a winner or ended in a draw.
+        Cell groupings for each row, column, & diagonal.
         """
-        return self.is_draw or self.winner is not None
-    
-    @property
-    def grid(self) -> ndarray:
-        """# Board Grid (ndarray)
-        
-        Returns the current state of the board as a 2D numpy array.
-        """
-        return self._grid_
-    
-    @property
-    def move_count(self) -> int:
-        """# Move Count (int)
-        
-        Total number of valid moves made by both players thus far.
-        """
-        return self._move_count_
-    
-    @property
-    def size(self) -> int:
-        """# Board Size (int)
-        
-        Returns the size of the board.
-        """
-        return self._size_
-    
-    @property
-    def state(self) -> ndarray:
-        """# (Board) State
-
-        A copy of the board's current state.
-        """
-        return self.grid.copy()
-    
-    @property
-    def statistics(self) -> Dict[str, Any]:
-        """# Statistics (Dict[str, Any])
-
-        Statistics regarding game status/progress.
-        """
-        return  {
-                    "game_over":    self.game_over,
-                    "move_count":   self.move_count,
-                    "status":       self.status,
-                    "winner":       self.winner
-                }
-        
-    @property
-    def winner(self) -> Optional[int]:
-        """# Winner (int | None)
-
-        Winner of current game if complete and not a draw.
-        """
-        return self._winner_
-    
-    @property
-    def winning_lines(self) -> List[List[Tuple[int, int]]]:
-        """# Winning Lines.
-
-        Lists of coordinates that make up possible winnings lines.
-        """
-        # Initialize list of lines.
-        lines:  List[List[Tuple[int, int]]] =   []
-        
-        # Compute winning row lines.
-        for r in range(self.size): lines.append([(r, c) for c in range(self.size)])
-        
-        # Compute winning column lines.
-        for c in range(self.size): lines.append([(r, c) for r in range(self.size)])
-        
-        # Compute main diagonal.
-        lines.append([(i, i) for i in range(self.size)])
-        
-        # Compute anti-diagonal.
-        lines.append([(i, self.size - 1 - i) for i in range(self.size)])
-        
-        # Return computed winning lines.
-        return lines
-    
-    # SETTERS ======================================================================================
-    
-    @current_player.setter
-    def current_player(self,
-        value:  int
-    ) -> None:
-        """# Set Current Player.
-        
-        Set the current player.
-
-        ## Args:
-            * value (int):  1 for player or -1 for opponent.
-            
-        ## Raises:
-            * AssertionError:   If value is not -1 or +1.
-        """
-        # Assert that value is either -1 or +1.
-        assert value in [-1, 1], f"Current player expected to be -1 or +1, got {value}"
-        
-        # Set current player.
-        self._current_player_:  int =   value
-        
-    @game_over.setter
-    def game_over(self,
-        value:  bool
-    ) -> None:
-        """# Set Game Over."""
-        self._game_over_:   bool =  value
-        
-    @move_count.setter
-    def move_count(self,
-        value:  int
-    ) -> None:
-        """# Set Move Count.
-
-        ## Args:
-            * value (int): Integer greater than or equal to zero.
-            
-        ## Raises:
-            * AssertionError:   If value is not an integer greater than or equal to zero.
-        """
-        # Assert that value is a positive integer.
-        assert 0 <= value, f"Value must be integer greater than or equal to zero, got {value}"
-        
-        # Set move count.
-        self._move_count_:  int =   value
-        
-    @winner.setter
-    def winner(self,
-        value:  int
-    ) -> None:
-        """# Set Winner.
-
-        ## Args:
-            * value (int):  1 for player or -1 for opponent.
-            
-        ## Raises:
-            * AssertionError:   If value is not -1 or +1.
-        """
-        # Assert that value is either -1 or +1.
-        assert value in [-1, 1], f"Current player expected to be -1 or +1, got {value}"
-        
-        # Set current player.
-        self._winner_:  int =   value
+        return  [[self._grid_[r][c] for c in range(self._size_)] for r in range(self._size_)]   +\
+                [[self._grid_[c][r] for c in range(self._size_)] for r in range(self._size_)]   +\
+                [[self._grid_[i][i] for i in range(self._size_)]]                               +\
+                [[self._grid_[i][self._size_ - i - 1] for i in range(self._size_)]]
         
     # METHODS ======================================================================================
     
-    def enter_move(self,
+    def mark(self,
         row:    int,
-        column: int
+        column: int,
+        entry:  Union[str, int, Tensor]
     ) -> bool:
-        """# Enter Move.
-        
-        Enter move on board at position specified.
+        """# Mark Cell.
 
         ## Args:
-            * row       (int):  Row at which move is being entered.
-            * column    (int):  Column at which move is being entered.
-
+            * row       (int):                      Row containing cell to mark.
+            * column    (int):                      Column containing cell to mark.
+            * entry     (Union[str, int, Tensor]):  Player entry representation:
+                * Symbol ("X", "O", " ")
+                * Number (1, -1, 0)
+                * One-hot tensor (e.g., [1, 0, 0])
+                
         ## Returns:
-            * bool: True, if move was valid.
+            * bool: True if cell was marked.
         """
-        # If move is not valid, return False.
-        if not self._move_is_valid_(row = row, column = column): return False
-        
-        # Enter move.
-        self.grid[row, column] = self.current_player
-        
-        # If current player has won...
-        if self.has_winner:
-            
-            # Define winner.
-            self.winner =       self.current_player
-            self.game_over =    True
-            
-        # Otherwise, if board is full...
-        elif self.is_full:
-            
-            # Game is a draw.
-            self.winner =       self.current_player
-            
-        # Otherwise, game is still in progress; switch players.
-        else: self._switch_player_()
-        
-        # Indicate that move was entered.
-        return True
-        
-    def enter_move_by_action(self,
-        action: int
+        return self._grid_[row][column].mark(entry = entry)
+    
+    def mark_by_index(self,
+        index:  int,
+        entry:  Union[str, int, Tensor]
     ) -> bool:
-        """# Enter Move by Action.
-        
-        Enter move on board at position specified by action.
+        """# Mark Cell by Index.
 
         ## Args:
-            * action    (int):  Integer in range(0, size ** 2)
-
+            * index (int):                      Index of cell to mark
+            * entry (Union[str, int, Tensor]):  Player entry representation:
+                * Symbol ("X", "O", " ")
+                * Number (1, -1, 0)
+                * One-hot tensor (e.g., [1, 0, 0])
+                
         ## Returns:
-            * bool: True if action is valid.
+            * bool: True if cell was marked.
         """
-        return  self.enter_move(
-                    row =       action // self.size,
-                    column =    action %  self.size
-                )
+        return self.mark(*self._index_to_coordinate_(index = index), entry = entry)
+    
+    def reset(self) -> None:
+        """# Reset (Board).
         
+        Reset board and all contained cells to their initial states.
+        """
+        # For each row...
+        for row in self._grid_:
+            
+            # Reset each cell in row.
+            for cell in row: cell.reset()
+            
     # HELPERS ======================================================================================
     
-    def _action_is_valid_(self,
-        action: int
-    ) -> bool:
-        """# Action is Valid?
+    def _coordinate_to_index_(self,
+        coordinate: Tuple[int, int]
+    ) -> int:
+        """# (Convert) to Index.
         
-        Validate proposed action.
+        Convert cell coordinate to board index.
 
         ## Args:
-            * action    (int):  Integer in range(0, size ** 2)
+            * coordinate    (Tuple[int, int]):  Row, column coordinate being converted.
 
         ## Returns:
-            * bool: True if action is valid.
+            * int:  Index equivalent of coordinate provided.
         """
-        return  self._move_is_valid_(
-                    row =       action // self.size,
-                    column =    action %  self.size
-                )
+        return coordinate[0] * self._size_ + coordinate[1]
     
-    def _get_glyph_(self,
-        value:  int
-    ) -> Glyphs:
-        """# Get Glyph.
+    def _index_to_coordinate_(self,
+        index:  int
+    ) -> Tuple[int, int]:
+        """# (Convert) to Coordinate.
         
-        Provide the glyph representation of a player position.
+        Convert board index to cell coordinate.
 
         ## Args:
-            * value (int):  Entry value for which glyph is being retrieved.
+            * index (int):  Board index being converted.
 
         ## Returns:
-            * Glyphs:
-                * "X": Player
-                * "O": Opponent
-                * " ": Empty
+            * Tuple[int, int]:  Coordinate equivalent of index provided.
         """
-        # Assert that proper integer is provided.
-        assert value in [-1, 0, 1], f"Expected value of [-1, 0, 1], got {value}"
-        
-        # Provide glyph.
-        return self._glyphs_[value]
+        return divmod(index, self._size_)
     
-    def _move_is_valid_(self,
-        row:    int,
-        column: int
+    def _line_is_a_win_(self,
+        line:   List[Cell]
     ) -> bool:
-        """# Move is Valid?
-        
-        Validate proposed move.
+        """# Line is a Win?
 
         ## Args:
-            * row       (int):  Row at which move is being entered.
-            * column    (int):  Column at which move is being entered.
+            * line  (List[Cell]):   Cell grouping being verified.
 
         ## Returns:
-            * bool: True, if move was valid.
+            * bool: True if line if occupied by one player.
         """
-        # If position is not in range return false.
-        if not 0 <= row < self.size and 0 <= column < self.size: return False
+        # If any cells are empty, there is no win.
+        if any(cell.is_empty for cell in line): return False
         
-        # Indicate that positino is not taken.
-        return self.grid[row, column] == 0
-        
-    def _switch_player_(self) -> None:
-        """# Switch Player.
-        
-        Flip current player value.
-        """
-        self.current_player = -self.current_player
-        
+        # Otherwise, indicate that only one player occupies all cells.
+        return len({cell.entry for cell in line}) == 1
+    
     # DUNDERS ======================================================================================
     
     def __repr__(self) -> str:
-        """# Get Representation.
-        
-        Provide the string representation of the Tic-Tac-Toe board.
+        """# Object Representation
 
-        ## Returns:
-            * str:  String representation of the Tic-Tac-Toe board.
+        Object representation of board.
         """
-        return self.__str__()
+        return f"<Board(size = {self._size_})>"
     
     def __str__(self) -> str:
-        """# Get String.
-        
-        Provide the string representation of the Tic-Tac-Toe board.
+        """# String Representation
 
-        ## Returns:
-            * str:  String representation of the Tic-Tac-Toe board.
+        String representation of board.
         """
-        # Initialize column index.
-        board_string:   str =   ("   ") + " ".join(f" {column} " for column in range(1, self.size + 1))
+        # Predefine separation line and column index.
+        line:           str =   ("\n   " + ("───┼" * (self._size_ - 1)) + ("─" * 3))
+        grid_string:    str =   ("   ") + " ".join(f" {column} " for column in range(self._size_))
         
         # For each row in grid...
-        for r, row in enumerate(self.grid, start = 1):
+        for r, row in enumerate(self._grid_):
             
-            # Start new row with index.
-            board_string        +=  f"\n {r} "
+            # Render cell row.
+            grid_string += f"\n {r} " + "│".join(f" {cell} " for cell in row)
             
-            # For each column in grid...
-            for c, column in enumerate(row, start = 1):
-                
-                # Append glyph.
-                board_string    +=  f" {self._get_glyph_(column)} │"          \
-                                        if c != self.size                   \
-                                        else f" {self._get_glyph_(column)} "
-                
-            # Append line separator if not last row.
-            board_string        +=  ("\n   " + ("───┼" * (self.size - 1)) + ("─" * 3))  \
-                                        if r != self.size                               \
-                                        else f""
-        
-        # Return board representation.
-        return board_string
+            # Append line if not on last row.
+            grid_string += line if r < self._size_ - 1 else ""
+            
+        # Return string representation.
+        return grid_string

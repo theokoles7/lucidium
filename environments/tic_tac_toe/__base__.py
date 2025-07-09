@@ -3,12 +3,15 @@
 Defines the Tic Tac Toe game framework.
 """
 
-from typing                                 import Any, Dict, Tuple, override, Union
+from typing                 import Any, Dict, List, override, Tuple, Union
 
-from numpy                                  import ndarray
+from numpy                  import ndarray
+from torch                  import Tensor
 
-from environments.__base__                  import Environment
-from environments.tic_tac_toe.components    import Board
+from .components            import *
+from environments.__base__  import Environment
+from spaces                 import Box, Discrete
+from symbolic               import Predicate
 
 class TicTacToe(Environment):
     """# Tic-Tac-Toe (Environment)
@@ -43,176 +46,85 @@ class TicTacToe(Environment):
                                                         -0.1.
         """
         # Define environment properties
-        self._size_:                    int =   size
-        self._win_reward_:              float = win_reward
-        self._loss_penalty_:            float = loss_penalty
-        self._draw_reward_:             float = draw_reward
-        self._invalid_move_penalty_:    float = invalid_move_penalty
-        self._move_penalty_:            float = move_penalty
+        self._size_:                    int =       size
+        self._win_reward_:              float =     win_reward
+        self._loss_penalty_:            float =     loss_penalty
+        self._draw_reward_:             float =     draw_reward
+        self._invalid_move_penalty_:    float =     invalid_move_penalty
+        self._move_penalty_:            float =     move_penalty
+        
+        # Define action space.
+        self._action_space_:            Discrete =  Discrete(n = size ** 2)
+        
+        # Define observation space.
+        self._observation_psace_:       Box =       Box(lower = -1, upper = 1, shape = (3, size, size))
+        
+        # Instantiate board.
+        self._board_:                   Board =     Board(size = size)
+        
+        # Define players.
+        self._player_x_:                Player =    Player.from_symbol("X")
+        self._player_o_:                Player =    Player.from_symbol("O")
+        self._current_player_:          Player =    self._player_x_
         
     # PROPERTIES ===================================================================================
-    
-    @property
-    @override
-    def action_space(self) -> int:
-        """# Action Space
-
-        Possible actions.
-        """
-        return self.size ** 2
-    
-    @property
-    def board(self) -> Board:
-        """# (Tic-Tac-Toe) Board
-
-        Game board object that holds the state of the game in progress.
-        """
-        return self._board_
-    
-    @property
-    def draw_reward(self) -> float:
-        """# (Draw) Reward (float)
-        
-        Reward yielded by ending game in a draw (neither player wins).
-        """
-        return self._draw_reward_
-    
-    @property
-    def invalid_move_penalty(self) -> float:
-        """# (Invalid Move) Penalty (float)
-        
-        Penalty incurred for attempting an invalid move.
-        """
-        return self._invalid_move_penalty_
-    
-    @property
-    def loss_penalty(self) -> float:
-        """# (Loss) Penalty (float)
-        
-        Penalty incurred by losing a game.
-        """
-        return self._loss_penalty_
-    
-    @property
-    def move_penalty(self) -> float:
-        """# (Move) Penalty (float)
-        
-        Cost of making a single move.
-        """
-        return self._move_penalty_
-    
-    @property
-    def size(self) -> int:
-        """# (Board) Size (int)
-        
-        Size of the Tic Tac Toe board.
-        """
-        return self._size_
-    
-    @property
-    @override
-    def state_space(self) -> int:
-        """# State Space
-
-        Size/dimension of tic-tac-toe board.
-        """
-        return self.size ** 2
-    
-    @property
-    def win_reward(self) -> float:
-        """# (Win) Reward (float)
-        
-        Reward yielded from winning a game.
-        """
-        return self._win_reward_
     
     # METHODS ======================================================================================
     
     @override
-    def reset(self) -> None:
-        """# Reset Environment.
+    def reset(self) -> Union[Tensor, List[Predicate]]:
+        """# Reset (Environment).
         
-        Resets the environment to its initial state, preparing it for a new game.
-        """
-        # Reset board.
-        self._board_:   Board = Board(size = self.size)
-        
-    @override
-    def step(self,
-        action: Union[int, Tuple[int, int]]
-    ) -> Tuple[ndarray, float, bool, Dict[str, Any]]:
-        """# Step.
-
-        ## Args:
-            * action    (Union[int, Tuple[int, int]]):  Action submitted by agent.
+        Reset environment to initial state.
 
         ## Returns:
-            * Tuple[ndarray, float, bool, Dict[str, Any]]:
-                * Resulting state of Tic-Tac-Toe board.
-                * Reward yielded/penalty incurred by action.
-                * Flag indicating if agent has reached a terminal state.
-                * Metadata & statistics.
+            * Union[Tensor, List[Predicate]]:   Observation of environment state after reset.
         """
-        # Assert that action submitted is either integer or tuple.
-        assert type(action) in [int, Tuple[int, int]], f"Action must be integer or coordinate, got {type(action)}"
+        # Reset board.
+        self._board_.reset()
         
-        # Submit action based on type.
-        move_is_valid:  bool =  self.board.enter_move_by_action(action = action)    \
-                                if isinstance(action, int)                          \
-                                else self.board.enter_move(action = action)
-                                
-        # If move was not valid, assign penalty.
-        if not move_is_valid:               reward: float = self.invalid_move_penalty
+        # Provide observation.
+        return self.observe()
+    
+    @override
+    def step(self,
+        action: int
+    ) -> Tuple[Union[Tensor, List[Predicate]], float, bool, Dict[str, Any]]:
+        """# Step
         
-        # Otherwise, if game is over..
-        elif self.board.game_over:
-            
-            # If player won, assign reward.
-            if self.board.winner == 1:      reward: float = self.win_reward
-            
-            # If opponent won, assign penalty.
-            elif self.board.winner == -1:   reward: float = self.loss_penalty
-            
-            # If game was a draw, assign reward.
-            elif self.board.is_draw:        reward: float = self.draw_reward
-            
-        # Otherwise, simply assign penalty for move, as game is still in progress.
-        else:                               reward: float = self.move_penalty
+        Update environment based on action submitted.
+
+        ## Args:
+            * action    (int):  Action submitted by agent.
+
+        ## Returns:
+            * Tuple[Union[Tensor, List[Predicate]], float, bool, Dict[str, Any]]:
+                * Updated state after action
+                * Reward yielded/penalty incurred by action
+                * True if environment has reached a terminal state
+                * Metadata
+        """
+        # If game has already concluded, an action cannot be submitted.
+        if self._done_: raise RuntimeError(f"Game has already concluded.")
         
-        # Return results of action.
-        return  (
-                    # New state.
-                    self.board.state,
-                    
-                    # Reward/Penalty
-                    reward,
-                    
-                    # Terminated?
-                    self.board.game_over,
-                    
-                    # Metadata/statistics.
-                    self.board.statistics
-                )
+        # If entry is marked...
+        if self._board_.mark_by_index(index = action, entry = self._current_player_.symbol):
             
+            # If move resulted in a win, assign reward.
+            if self._board_.has_winner: return  self.observe(),     \
+                                                self._win_reward_,  \
+                                                True,               \
+                                                {"event": "won the game"}
+        
+        # Otherwise, assign penalty for invalid move.
+        return self.observe(), self._move_penalty_, False, {"event": "attempted invalid move"}
         
     # DUNDERS ======================================================================================
     
     def __repr__(self) -> str:
-        """# Get Representation.
-        
-        Provide the string representation of the Tic-Tac-Toe board.
-
-        ## Returns:
-            * str:  String representation of the Tic-Tac-Toe board.
-        """
-        return self.board.__str__()
+        """# Object Representation"""
+        return f"""TicTacToe(size = {self._size_})"""
     
     def __str__(self) -> str:
-        """# Get String.
-        
-        Provide the string representation of the Tic-Tac-Toe board.
-
-        ## Returns:
-            * str:  String representation of the Tic-Tac-Toe board.
-        """
-        return self.board.__str__()
+        """# String Representation"""
+        return str(self._board_)
