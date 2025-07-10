@@ -6,7 +6,6 @@ This module provides the base class for all environments in the Lucidium framewo
 __all__ = ["Environment"]
 
 from abc        import ABC, abstractmethod
-from logging    import Logger
 from typing     import Any, Dict, Tuple
 
 class Environment(ABC):
@@ -19,15 +18,6 @@ class Environment(ABC):
         * state_space   (Any):  Quantification of possible states in which the environment can be 
                                 observed.
     """
-    
-    def __init__(self, **kwargs):
-        """Initialize base Environment object."""
-        # Declare logger member.
-        self.__logger__:        Logger
-        
-        # Declare attributes and their types.
-        self._action_space_:    Any
-        self._state_space_:     Any
         
     # PROPERTIES ===================================================================================
     

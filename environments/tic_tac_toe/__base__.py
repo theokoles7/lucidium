@@ -3,6 +3,7 @@
 Defines the Tic Tac Toe game framework.
 """
 
+from logging                import Logger
 from typing                 import Any, Dict, List, override, Tuple, Union
 
 from numpy                  import ndarray
@@ -12,6 +13,7 @@ from .components            import *
 from environments.__base__  import Environment
 from spaces                 import Box, Discrete
 from symbolic               import Predicate
+from utilities              import get_child
 
 class TicTacToe(Environment):
     """# Tic-Tac-Toe (Environment)
@@ -45,6 +47,12 @@ class TicTacToe(Environment):
             * move_penalty          (float, optional):  Cost of making a single move. Defaults to 
                                                         -0.1.
         """
+        # Inititialize environment.
+        super(TicTacToe, self).__init__(**kwargs)
+        
+        # Initialize logger.
+        self.__logger__:                Logger =    get_child("tic-tac-toe")
+        
         # Define environment properties
         self._size_:                    int =       size
         self._win_reward_:              float =     win_reward
@@ -53,21 +61,31 @@ class TicTacToe(Environment):
         self._invalid_move_penalty_:    float =     invalid_move_penalty
         self._move_penalty_:            float =     move_penalty
         
-        # Define action space.
-        self._action_space_:            Discrete =  Discrete(n = size ** 2)
-        
-        # Define observation space.
-        self._observation_psace_:       Box =       Box(lower = -1, upper = 1, shape = (3, size, size))
-        
         # Instantiate board.
         self._board_:                   Board =     Board(size = size)
         
         # Define players.
-        self._player_x_:                Player =    Player.from_symbol("X")
-        self._player_o_:                Player =    Player.from_symbol("O")
+        self._player_x_:                Player =    Player.X
+        self._player_o_:                Player =    Player.O
         self._current_player_:          Player =    self._player_x_
+        self._winner_:                  Player =    Player.EMPTY
+        
+        # Log for debugging.
+        self.__logger__.debug(f"Initialized TicTacToe environment ({locals()})")
         
     # PROPERTIES ===================================================================================
+    
+    @override
+    @property
+    def action_space(self) -> Discrete:
+        """# (Tic-Tac-Toe) Action Space"""
+        return Discrete(n = self._size_ ** 2)
+    
+    @override
+    @property
+    def state_space(self) -> Box:
+        """# (Tic-Tac-Toe) Observation Space"""
+        return Box(lower = -1, upper = 1, shape = (self._size_, self._size_), dtype = int)
     
     # METHODS ======================================================================================
     
@@ -105,19 +123,58 @@ class TicTacToe(Environment):
                 * Metadata
         """
         # If game has already concluded, an action cannot be submitted.
-        if self._done_: raise RuntimeError(f"Game has already concluded.")
+        if self._done_: raise RuntimeError(f"Game has already concluded. Call reset() to start a new game.")
         
-        # If entry is marked...
-        if self._board_.mark_by_index(index = action, entry = self._current_player_.symbol):
+        # Log action for debugging.
+        self.__logger__.debug(f"Player {self._current_player_} submitted action: {action}")
+        
+        # If action is not valid...
+        if  not self.action_space.contains(action) or \
+            not self._board_.mark_by_index(index = action, entry = self._current_player_.symbol):
+                
+            # Assign penalty.
+            return  self._get_observation_(),   \
+                    self._invalid_move_penalty_,\
+                    False,                      \
+                    {"event": f"Player {self._current_player_} attempted invalid move {action}"}
+                    
+        # If player made a winning move...
+        if self._board_.has_winner:
             
-            # If move resulted in a win, assign reward.
-            if self._board_.has_winner: return  self.observe(),     \
-                                                self._win_reward_,  \
-                                                True,               \
-                                                {"event": "won the game"}
+            # Assign reward.
+            return  self._get_observation_(),   \
+                    self._win_reward_,          \
+                    True,                       \
+                    {"event": f"Player {self._current_player_} won the game."}
+                    
+        # If board is full...
+        if self._board_.is_full:
+            
+            # Assign penalty.
+            return  self._get_observation_(),   \
+                    self._draw_reward_,         \
+                    True,                       \
+                    {"event": f"Game ended in draw."}
+                    
+        # Otherwise, simply assign cost of move.
+        return  self._get_observation_(),   \
+                self._move_penalty_,        \
+                False,                      \
+                {"event": f"Player {self._current_player_} made move {action}"}
+                
+    # HELPERS ======================================================================================
+    
+    def _get_observation_(self) -> Dict[str, Union[Tensor, List[Predicate]]]:
+        """# Get Observation.
         
-        # Otherwise, assign penalty for invalid move.
-        return self.observe(), self._move_penalty_, False, {"event": "attempted invalid move"}
+        Provide observation of environment's current state.
+
+        ## Returns:
+            * Dict[str, Union[Tensor, List[Predicate]]]:
+                * Tensor state representation
+                * Symbolic predicates that apply to current state
+        """
+        
         
     # DUNDERS ======================================================================================
     
