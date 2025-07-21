@@ -40,6 +40,16 @@ class RegistryEntry():
         return self._cls_
     
     @property
+    def name(self) -> str:
+        """# Registration Name."""
+        return self._name_
+    
+    @property
+    def parser(self) -> Optional[Callable]:
+        """# Argument Parser Registration."""
+        return self._parser_
+    
+    @property
     def tags(self) -> Optional[List[str]]:
         """# Entry Tags."""
         return self._tags_
@@ -67,7 +77,7 @@ class RegistryEntry():
         ## Args:
             * sub_parser    (_SubParsersAction):    Parent's sub parser.
         """
-        self._parser_(sub_parser)
+        self._parser_(subparser)
         
     # DUNDERS ======================================================================================
     
