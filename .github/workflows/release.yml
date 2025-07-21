@@ -1,6 +1,14 @@
 name: Release
 
+# Trigger on version tags pushed to main
 on:
+  push:
+    tags:
+      - 'v*'  # Matches v1.0.0, v1.2.3-beta, etc.
+    branches:
+      - main
+  
+  # Keep manual trigger as backup option
   workflow_dispatch:
     inputs:
       version_bump:
@@ -18,7 +26,94 @@ on:
         type: string
 
 jobs:
-  release:
+  # Job for automatic tag-based releases
+  release-from-tag:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine
+    
+    - name: Extract version from tag
+      id: extract_version
+      run: |
+        # Remove 'v' prefix from tag to get version
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Creating release for version: $VERSION"
+    
+    - name: Verify version matches tag
+      run: |
+        # Check that the version in _version.py matches the tag
+        PACKAGE_VERSION=$(python -c "
+        import sys, os
+        sys.path.insert(0, '.')
+        from lucidium._version import __version__
+        print(__version__)
+        ")
+        TAG_VERSION="${{ steps.extract_version.outputs.version }}"
+        
+        if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
+          echo "❌ Version mismatch!"
+          echo "Package version: $PACKAGE_VERSION"
+          echo "Tag version: $TAG_VERSION"
+          echo "Make sure to update _version.py before tagging"
+          exit 1
+        fi
+        
+        echo "✅ Version verified: $PACKAGE_VERSION"
+    
+    - name: Build package
+      run: python -m build
+    
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: Release ${{ github.ref_name }}
+        draft: false
+        prerelease: ${{ contains(steps.extract_version.outputs.version, '-') }}  # Pre-release if version contains '-'
+        body: |
+          ## Changes in ${{ github.ref_name }}
+          
+          Automated release created from tag push.
+          
+          ### Installation
+          ```bash
+          pip install lucidium==${{ steps.extract_version.outputs.version }}
+          ```
+          
+          ### What's Changed
+          <!-- Add your changelog here or use a changelog generator -->
+          
+    # Optional: Publish to PyPI automatically
+    # - name: Publish to PyPI
+    #   env:
+    #     TWINE_USERNAME: __token__
+    #     TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+    #   run: |
+    #     twine upload dist/*
+
+  # Job for manual version bumping (keeps your existing functionality)
+  manual-release:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -33,7 +128,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.12'
+        python-version: '3.10'
     
     - name: Install dependencies
       run: |
@@ -78,7 +173,7 @@ jobs:
         body: |
           ## Changes in v${{ steps.bump.outputs.new_version }}
           
-          Auto-generated release from version bump.
+          Manual release from GitHub Actions.
           
           ### Installation
           ```bash
