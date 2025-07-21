@@ -1,0 +1,86 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      target_version:
+        description: 'Specific version (optional, overrides bump type)'
+        required: false
+        type: string
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine
+    
+    - name: Configure git
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+    
+    - name: Bump version
+      id: bump
+      run: |
+        if [ -n "${{ github.event.inputs.target_version }}" ]; then
+          python scripts/bump_version.py --to "${{ github.event.inputs.target_version }}"
+          echo "new_version=${{ github.event.inputs.target_version }}" >> $GITHUB_OUTPUT
+        else
+          # Capture the new version from the script output
+          NEW_VERSION=$(python scripts/bump_version.py ${{ github.event.inputs.version_bump }} --no-git | grep "New version:" | cut -d' ' -f3)
+          python scripts/bump_version.py ${{ github.event.inputs.version_bump }}
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Push changes
+      run: |
+        git push origin main
+        git push --tags
+    
+    - name: Build package
+      run: python -m build
+    
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ steps.bump.outputs.new_version }}
+        release_name: Release v${{ steps.bump.outputs.new_version }}
+        draft: false
+        prerelease: false
+        body: |
+          ## Changes in v${{ steps.bump.outputs.new_version }}
+          
+          Auto-generated release from version bump.
+          
+          ### Installation
+          ```bash
+          pip install lucidium==${{ steps.bump.outputs.new_version }}
+          ```
