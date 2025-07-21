@@ -20,5 +20,10 @@ setup(
     python_requires =   ">=3.10",
     install_requires =  [
                             
-                        ]
+                        ],
+    entry_points =      {
+                            "console_scripts":  [
+                                                    "lucidium=lucidium.__main__:main",
+                                                ],
+                        }
 )
