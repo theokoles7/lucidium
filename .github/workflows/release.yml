@@ -1,13 +1,13 @@
 # .github/workflows/release.yml
 name: Release
 
-# Trigger on version tags, manual dispatch, and merges to main
+# Trigger on pushes to main and version tags
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'  # Matches v1.0.0, v1.2.3-beta, etc.
-    branches:
-      - main  # Also trigger on pushes to main
   
   # Keep manual trigger as backup option
   workflow_dispatch:
@@ -27,9 +27,10 @@ on:
         type: string
 
 jobs:
-  # Job for automatic tag-based releases
-  release-from-tag:
-    if: startsWith(github.ref, 'refs/tags/v')
+  # Single job that handles all release scenarios
+  release:
+    # Skip if this is a workflow_dispatch (manual releases handled separately)
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -38,46 +39,74 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0
+        fetch-depth: 0  # Need full history to check for tags
+    
+    - name: Check for version tag on current commit
+      id: check_version
+      run: |
+        # Check if current commit has a version tag
+        TAGS=$(git tag --points-at HEAD)
+        VERSION_TAG=""
+        
+        for tag in $TAGS; do
+          if [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+.*$ ]]; then
+            VERSION_TAG="$tag"
+            break
+          fi
+        done
+        
+        if [ -n "$VERSION_TAG" ]; then
+          echo "has_version_tag=true" >> $GITHUB_OUTPUT
+          echo "version_tag=$VERSION_TAG" >> $GITHUB_OUTPUT
+          VERSION=${VERSION_TAG#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "✅ Found version tag: $VERSION_TAG"
+        else
+          echo "has_version_tag=false" >> $GITHUB_OUTPUT
+          echo "ℹ️ No version tag found on current commit - skipping release"
+        fi
+    
+    - name: Skip if no version tag
+      if: steps.check_version.outputs.has_version_tag != 'true'
+      run: |
+        echo "This commit doesn't have a version tag - no release will be created"
+        echo "To create a release:"
+        echo "1. Run: python scripts/bump_version.py patch"
+        echo "2. Push the changes and tags"
+        exit 0
     
     - name: Set up Python
+      if: steps.check_version.outputs.has_version_tag == 'true'
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
     
     - name: Install dependencies
+      if: steps.check_version.outputs.has_version_tag == 'true'
       run: |
         python -m pip install --upgrade pip
         pip install build twine
     
-    - name: Extract version from tag
-      id: extract_version
-      run: |
-        # Remove 'v' prefix from tag to get version
-        VERSION=${GITHUB_REF#refs/tags/v}
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "Creating release for version: $VERSION"
-    
     - name: Verify version matches tag
+      if: steps.check_version.outputs.has_version_tag == 'true'
       run: |
         # Check that the version in _version_.py matches the tag
         PACKAGE_VERSION=$(python -c "
         import sys, os
-        # Add the project root to Python path
         sys.path.insert(0, os.getcwd())
-        # Read the version file directly
         version_file = 'lucidium/_version_.py'
         version_vars = {}
         with open(version_file) as f:
             exec(f.read(), version_vars)
         print(version_vars['__version__'])
         ")
-        TAG_VERSION="${{ steps.extract_version.outputs.version }}"
+        TAG_VERSION="${{ steps.check_version.outputs.version }}"
+        
+        echo "Package version: $PACKAGE_VERSION"
+        echo "Tag version: $TAG_VERSION"
         
         if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
           echo "❌ Version mismatch!"
-          echo "Package version: $PACKAGE_VERSION"
-          echo "Tag version: $TAG_VERSION"
           echo "Make sure to update _version_.py before tagging"
           exit 1
         fi
@@ -85,152 +114,60 @@ jobs:
         echo "✅ Version verified: $PACKAGE_VERSION"
     
     - name: Build package
+      if: steps.check_version.outputs.has_version_tag == 'true'
       run: python -m build
     
-    - name: Create GitHub Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref_name }}
-        release_name: Release ${{ github.ref_name }}
-        draft: false
-        prerelease: ${{ contains(steps.extract_version.outputs.version, '-') }}
-        body: |
-          ## Changes in ${{ github.ref_name }}
-          
-          Automated release created from tag push.
-          
-          ### Installation
-          ```bash
-          pip install lucidium==${{ steps.extract_version.outputs.version }}
-          ```
-          
-          ### What's Changed
-          <!-- Add your changelog here or use a changelog generator -->
-    
-    - name: Publish to PyPI
-      if: success()
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+    - name: Generate changelog
+      if: steps.check_version.outputs.has_version_tag == 'true'
+      id: changelog
       run: |
-        twine check dist/*
-        twine upload dist/*
-
-  # Job for merge-based releases (only if commit has version tag)
-  release-from-merge:
-    if: github.ref == 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    
-    - name: Check if commit is tagged
-      id: check_tag
-      run: |
-        # Check if the current commit has a version tag
-        TAG=$(git describe --exact-match --tags HEAD 2>/dev/null || echo "")
-        if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+.*$ ]]; then
-          echo "has_version_tag=true" >> $GITHUB_OUTPUT
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "Found version tag: $TAG"
+        # Get commits since last tag (for changelog)
+        PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+        if [ -n "$PREV_TAG" ]; then
+          echo "## What's Changed" > changelog.md
+          git log --pretty=format:"- %s" $PREV_TAG..HEAD >> changelog.md
         else
-          echo "has_version_tag=false" >> $GITHUB_OUTPUT
-          echo "No version tag found for this commit"
-        fi
-    
-    - name: Skip if no version tag
-      if: steps.check_tag.outputs.has_version_tag != 'true'
-      run: |
-        echo "This merge doesn't have a version tag - skipping release"
-        echo "To create a release, tag the commit with a version (e.g., v1.2.3)"
-        exit 0
-    
-    - name: Set up Python
-      if: steps.check_tag.outputs.has_version_tag == 'true'
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-    
-    - name: Install dependencies
-      if: steps.check_tag.outputs.has_version_tag == 'true'
-      run: |
-        python -m pip install --upgrade pip
-        pip install build twine
-    
-    - name: Extract version from tag
-      if: steps.check_tag.outputs.has_version_tag == 'true'
-      id: extract_version
-      run: |
-        TAG="${{ steps.check_tag.outputs.tag }}"
-        VERSION=${TAG#v}
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "Creating release for version: $VERSION"
-    
-    - name: Verify version matches tag
-      if: steps.check_tag.outputs.has_version_tag == 'true'
-      run: |
-        PACKAGE_VERSION=$(python -c "
-        import sys, os
-        sys.path.insert(0, os.getcwd())
-        version_file = 'lucidium/_version_.py'
-        version_vars = {}
-        with open(version_file) as f:
-            exec(f.read(), version_vars)
-        print(version_vars['__version__'])
-        ")
-        TAG_VERSION="${{ steps.extract_version.outputs.version }}"
-        
-        if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
-          echo "❌ Version mismatch!"
-          echo "Package version: $PACKAGE_VERSION"
-          echo "Tag version: $TAG_VERSION"
-          exit 1
+          echo "## What's Changed" > changelog.md
+          echo "- Initial release" >> changelog.md
         fi
         
-        echo "✅ Version verified: $PACKAGE_VERSION"
-    
-    - name: Build package
-      if: steps.check_tag.outputs.has_version_tag == 'true'
-      run: python -m build
+        # Set output for use in release body
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        cat changelog.md >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
     
     - name: Create GitHub Release
-      if: steps.check_tag.outputs.has_version_tag == 'true'
+      if: steps.check_version.outputs.has_version_tag == 'true'
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ steps.check_tag.outputs.tag }}
-        release_name: Release ${{ steps.check_tag.outputs.tag }}
+        tag_name: ${{ steps.check_version.outputs.version_tag }}
+        release_name: Release ${{ steps.check_version.outputs.version_tag }}
         draft: false
-        prerelease: ${{ contains(steps.extract_version.outputs.version, '-') }}
+        prerelease: ${{ contains(steps.check_version.outputs.version, '-') }}
         body: |
-          ## Changes in ${{ steps.check_tag.outputs.tag }}
+          ## Lucidium ${{ steps.check_version.outputs.version_tag }}
           
-          Automated release created from merge to main.
+          ${{ steps.changelog.outputs.changelog }}
           
           ### Installation
           ```bash
-          pip install lucidium==${{ steps.extract_version.outputs.version }}
+          pip install lucidium==${{ steps.check_version.outputs.version }}
           ```
           
-          ### What's Changed
-          <!-- Add your changelog here or use a changelog generator -->
+          ### PyPI Package
+          📦 [View on PyPI](https://pypi.org/project/lucidium/${{ steps.check_version.outputs.version }}/)
     
     - name: Publish to PyPI
-      if: steps.check_tag.outputs.has_version_tag == 'true' && success()
+      if: steps.check_version.outputs.has_version_tag == 'true' && success()
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
       run: |
         twine check dist/*
         twine upload dist/*
+        echo "✅ Published to PyPI: https://pypi.org/project/lucidium/${{ steps.check_version.outputs.version }}/"
 
   # Job for manual version bumping
   manual-release:
@@ -296,34 +233,9 @@ jobs:
       run: |
         git push origin main
         git push --tags
+        echo "✅ Pushed version bump and tags - release workflow will trigger automatically"
     
-    - name: Build package
-      run: python -m build
-    
-    - name: Create GitHub Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: v${{ steps.bump.outputs.new_version }}
-        release_name: Release v${{ steps.bump.outputs.new_version }}
-        draft: false
-        prerelease: false
-        body: |
-          ## Changes in v${{ steps.bump.outputs.new_version }}
-          
-          Manual release from GitHub Actions.
-          
-          ### Installation
-          ```bash
-          pip install lucidium==${{ steps.bump.outputs.new_version }}
-          ```
-    
-    - name: Publish to PyPI
-      if: success()
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+    - name: Wait for release workflow
       run: |
-        twine check dist/*
-        twine upload dist/*
+        echo "⏳ The release workflow will now be triggered by the tag push..."
+        echo "Check the Actions tab to see the release build progress."
