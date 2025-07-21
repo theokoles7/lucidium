@@ -30,7 +30,7 @@ def get_version() -> str:
     version_vars:   Dict[str, Any] =    {}
     
     # Open file.
-    with open(Path(__file__).parent / "lucidium" / "_version.py") as f:
+    with open(Path(__file__).parent / "lucidium" / "_version_.py") as f:
         
         # Read data into dictionary.
         exec(f.read(), version_vars)
@@ -41,7 +41,7 @@ def get_version() -> str:
 # Set up package.
 setup(
     name =                          "lucidium",
-    version =                       "0.0.0",
+    version =                       get_version(),
     author =                        "Gabriel C. Trahan",
     author_email =                  "gabrieltrahan777@hotmail.com",
     description =                   """Experiments in neuro-symbolic reinforcement learning in the 
@@ -61,5 +61,15 @@ setup(
                                         "console_scripts":  [
                                                                 "lucidium=lucidium.__main__:main",
                                                             ],
-                                    }
+                                    },
+    classifiers =                   [
+                                        "Intended Audience :: Developers",
+                                        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+                                        "Operating System :: OS Independent",
+                                        "Programming Language :: Python :: 3",
+                                        "Programming Language :: Python :: 3.10",
+                                        "Programming Language :: Python :: 3.11",
+                                        "Programming Language :: Python :: 3.12",
+                                        "Topic :: Scientific/Engineering :: Artificial Intelligence",
+                                    ],
 )

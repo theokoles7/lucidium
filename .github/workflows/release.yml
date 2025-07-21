@@ -1,12 +1,10 @@
 name: Release
 
-# Trigger on version tags pushed to main
+# Trigger only on version tags and manual dispatch
 on:
   push:
     tags:
       - 'v*'  # Matches v1.0.0, v1.2.3-beta, etc.
-    branches:
-      - main
   
   # Keep manual trigger as backup option
   workflow_dispatch:
@@ -59,12 +57,17 @@ jobs:
     
     - name: Verify version matches tag
       run: |
-        # Check that the version in _version.py matches the tag
+        # Check that the version in _version_.py matches the tag
         PACKAGE_VERSION=$(python -c "
         import sys, os
-        sys.path.insert(0, '.')
-        from lucidium._version import __version__
-        print(__version__)
+        # Add the project root to Python path
+        sys.path.insert(0, os.getcwd())
+        # Read the version file directly
+        version_file = 'lucidium/_version_.py'
+        version_vars = {}
+        with open(version_file) as f:
+            exec(f.read(), version_vars)
+        print(version_vars['__version__'])
         ")
         TAG_VERSION="${{ steps.extract_version.outputs.version }}"
         
@@ -72,7 +75,7 @@ jobs:
           echo "❌ Version mismatch!"
           echo "Package version: $PACKAGE_VERSION"
           echo "Tag version: $TAG_VERSION"
-          echo "Make sure to update _version.py before tagging"
+          echo "Make sure to update _version_.py before tagging"
           exit 1
         fi
         
@@ -102,16 +105,16 @@ jobs:
           
           ### What's Changed
           <!-- Add your changelog here or use a changelog generator -->
-          
-    # Optional: Publish to PyPI automatically
-    # - name: Publish to PyPI
-    #   env:
-    #     TWINE_USERNAME: __token__
-    #     TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-    #   run: |
-    #     twine upload dist/*
+    - name: Publish to PyPI
+      if: success()
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      run: |
+        twine check dist/*
+        twine upload dist/*
 
-  # Job for manual version bumping (keeps your existing functionality)
+  # Job for manual version bumping
   manual-release:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -147,9 +150,27 @@ jobs:
           python scripts/bump_version.py --to "${{ github.event.inputs.target_version }}"
           echo "new_version=${{ github.event.inputs.target_version }}" >> $GITHUB_OUTPUT
         else
-          # Capture the new version from the script output
-          NEW_VERSION=$(python scripts/bump_version.py ${{ github.event.inputs.version_bump }} --no-git | grep "New version:" | cut -d' ' -f3)
+          # Get current version first
+          CURRENT_VERSION=$(python -c "
+          version_file = 'lucidium/_version_.py'
+          version_vars = {}
+          with open(version_file) as f:
+              exec(f.read(), version_vars)
+          print(version_vars['__version__'])
+          ")
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Bump version and capture output
           python scripts/bump_version.py ${{ github.event.inputs.version_bump }}
+          
+          # Get new version
+          NEW_VERSION=$(python -c "
+          version_file = 'lucidium/_version_.py'
+          version_vars = {}
+          with open(version_file) as f:
+              exec(f.read(), version_vars)
+          print(version_vars['__version__'])
+          ")
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
         fi
     
@@ -179,3 +200,13 @@ jobs:
           ```bash
           pip install lucidium==${{ steps.bump.outputs.new_version }}
           ```
+    
+    # Publish to PyPI automatically (commented out until PyPI token is set up)
+    # - name: Publish to PyPI
+    #   if: success()
+    #   env:
+    #     TWINE_USERNAME: __token__
+    #     TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+    #   run: |
+    #     twine check dist/*
+    #     twine upload dist/*
