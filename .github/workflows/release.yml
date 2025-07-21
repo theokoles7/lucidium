@@ -131,10 +131,9 @@ jobs:
           echo "- Initial release" >> changelog.md
         fi
         
-        # Set output for use in release body
-        echo "changelog<<EOF" >> $GITHUB_OUTPUT
-        cat changelog.md >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
+        # Save changelog to file for later use
+        echo "Changelog generated:"
+        cat changelog.md
     
     - name: Create GitHub Release
       if: steps.check_version.outputs.has_version_tag == 'true'
