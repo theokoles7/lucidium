@@ -7,9 +7,6 @@ __all__ = ["parse_lucidium_arguments"]
 
 from argparse                           import ArgumentParser, _ArgumentGroup, Namespace, _SubParsersAction
 
-from lucidium.registries.agents         import AGENT_REGISTRY
-from lucidium.registries.environments   import ENVIRONMENT_REGISTRY
-
 def parse_lucidium_arguments() -> Namespace:
     """# Parse Lucidium Arguments.
     
@@ -62,12 +59,16 @@ def parse_lucidium_arguments() -> Namespace:
     # +============================================================================================+
     # | END ARGUMENTS                                                                              |
     # +============================================================================================+
+
+    from lucidium.registries import AGENT_REGISTRY, ENVIRONMENT_REGISTRY
     
-    # Register agent parsers.
-    for _, agent in AGENT_REGISTRY.entries: agent.register_parser(subparser = _subparser_)
+    # Force loading of all agents and environments.
+    AGENT_REGISTRY.load_all()
+    ENVIRONMENT_REGISTRY.load_all()
     
-    # Register environment parsers.
-    for _, environment in ENVIRONMENT_REGISTRY.entries: environment.register_parser(subparser = _subparser_)
+    # Register agent and environment parsers.
+    AGENT_REGISTRY.register_parsers(parent_subparser = _subparser_)
+    ENVIRONMENT_REGISTRY.register_parsers(parent_subparser = _subparser_)
 
     # Parse arguments
     return _parser_.parse_args()

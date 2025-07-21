@@ -8,12 +8,19 @@ from typing                                         import Any, Dict, List, over
 
 from torch                                          import Tensor
 
+from lucidium.environments.tic_tac_toe.__args__     import register_tic_tac_toe_parser
 from lucidium.environments.tic_tac_toe.components   import *
 from lucidium.environments.__base__                 import Environment
+from lucidium.registries                            import register_environment
 from lucidium.spaces                                import Box, Discrete
 from lucidium.symbolic                              import Predicate
 from lucidium.utilities                             import get_child
 
+@register_environment(
+    name =      "tic-tac-toe",
+    tags =      ["game", "two-player", "turn-based", "discrete", "strategic"],
+    parser =    register_tic_tac_toe_parser
+)
 class TicTacToe(Environment):
     """# Tic-Tac-Toe (Environment)
     
