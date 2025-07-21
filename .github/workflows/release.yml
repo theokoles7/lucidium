@@ -1,13 +1,11 @@
 # .github/workflows/release.yml
 name: Release
 
-# Trigger on pushes to main and version tags
+# Trigger on pushes to main (which will include tagged commits)
 on:
   push:
     branches:
       - main
-    tags:
-      - 'v*'  # Matches v1.0.0, v1.2.3-beta, etc.
   
   # Keep manual trigger as backup option
   workflow_dispatch:
