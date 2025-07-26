@@ -3,6 +3,7 @@
 Defines the Tic Tac Toe game framework.
 """
 
+from functools                                      import cached_property
 from logging                                        import Logger
 from typing                                         import Any, Dict, List, override, Tuple, Union
 
@@ -82,16 +83,34 @@ class TicTacToe(Environment):
     # PROPERTIES ===================================================================================
     
     @override
-    @property
+    @cached_property
     def action_space(self) -> Discrete:
         """# (Tic-Tac-Toe) Action Space"""
         return Discrete(n = self._size_ ** 2)
     
-    @override
     @property
+    def current_player(self) -> Player:
+        """# Current Player"""
+        return self._current_player_
+    
+    @property
+    def done(self) -> bool:
+        """# Game Over?
+        
+        True if game has a winner or has ended in a draw.
+        """
+        return self._board_.has_winner or self._board_.is_draw
+    
+    @override
+    @cached_property
     def state_space(self) -> Box:
         """# (Tic-Tac-Toe) Observation Space"""
         return Box(lower = -1, upper = 1, shape = (self._size_, self._size_), dtype = int)
+    
+    @property
+    def winner(self) -> Player:
+        """# Winning Player."""
+        return self._winner_
     
     # METHODS ======================================================================================
     
@@ -107,8 +126,15 @@ class TicTacToe(Environment):
         # Reset board.
         self._board_.reset()
         
+        # Initialize game state.
+        self._current_player_:  Player =    self._player_x_
+        self._winner_:          Player =    Player.EMPTY
+        
+        # Log action for debugging.
+        self.__logger__.debug("Tic-Tac-Toe environment reset.")
+        
         # Provide observation.
-        return self.observe()
+        return self._get_observation_()
     
     @override
     def step(self,
@@ -129,7 +155,7 @@ class TicTacToe(Environment):
                 * Metadata
         """
         # If game has already concluded, an action cannot be submitted.
-        if self._done_: raise RuntimeError(f"Game has already concluded. Call reset() to start a new game.")
+        if self.done: raise RuntimeError(f"Game has already concluded. Call reset() to start a new game.")
         
         # Log action for debugging.
         self.__logger__.debug(f"Player {self._current_player_} submitted action: {action}")
@@ -138,7 +164,7 @@ class TicTacToe(Environment):
         if  not self.action_space.contains(action) or \
             not self._board_.mark_by_index(index = action, entry = self._current_player_.symbol):
                 
-            # Assign penalty.
+            # Assign penalty, but don't switch players.
             return  self._get_observation_(),   \
                     self._invalid_move_penalty_,\
                     False,                      \
@@ -156,13 +182,16 @@ class TicTacToe(Environment):
         # If board is full...
         if self._board_.is_full:
             
-            # Assign penalty.
+            # Assign draw reward.
             return  self._get_observation_(),   \
                     self._draw_reward_,         \
                     True,                       \
                     {"event": f"Game ended in draw."}
                     
-        # Otherwise, simply assign cost of move.
+        # Otherwise, switch players.
+        self._switch_player_()
+                    
+        # Assign cost of move.
         return  self._get_observation_(),   \
                 self._move_penalty_,        \
                 False,                      \
@@ -177,8 +206,28 @@ class TicTacToe(Environment):
 
         ## Returns:
             * Dict[str, Union[Tensor, List[Predicate]]]:
-                * Tensor state representation
-                * Symbolic predicates that apply to current state
+                * "tensor":     Tensor state representation
+                * "predicate":  Symbolic predicates that apply to current state
+        """
+        return  {
+                    "tensor":       self._board_.to_tensor(),
+                    "predicate":    self._board_.to_predicate()
+                }
+        
+    def _switch_player_(self) -> None:
+        """# Switch Player.
+
+        Switch to current player's opponent.
+        """
+        self._current_player_: Player = self._current_player_.opponent
+        
+    def to_tensor(self) -> Tensor:
+        """# Board to Tensor.
+        
+        Convert board state to tensor representation by aggregating cell tensors.
+
+        ## Returns:
+            * Tensor:   Board state as tensor (shape = size x size).
         """
         
         

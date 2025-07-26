@@ -3,28 +3,20 @@
 Symbolic predicate definition, structure, and utilities.
 """
 
-from typing import Any, Dict, Tuple
+from dataclasses    import dataclass
+from typing         import Any, Dict, Tuple
 
-from torch  import tensor, Tensor
+from torch          import tensor, Tensor
 
+@dataclass(frozen = True)
 class Predicate():
     """# Predicate
     
     Symbolic representation of a grounded predicate.
     """
-    
-    def __init__(self,
-        name:   str,
-        *args:  Any
-    ):
-        """# Instantiate Predicate.
-
-        ## Args:
-            * name  (str):  Predicate name.
-        """
-        # Define properties.
-        self._name_:    str =           name
-        self._args_:    Tuple[Any] =    tuple(args)
+    # Define properties.
+    name:   str
+    args:   Tuple[Any, ...]
         
     # PROPERTIES ===================================================================================
     
@@ -34,7 +26,7 @@ class Predicate():
 
         Number of arguments attrbuted to predicate.
         """
-        return len(self._args_)
+        return len(self.args)
         
     # METHODS ======================================================================================
     
@@ -49,14 +41,14 @@ class Predicate():
         ## Returns:
             * Tensor:   Tensor representation of predicate.
         """
-        return tensor([vocabulary.get(str(arg), -1) for arg in (self._name_, *self._args_)])
+        return tensor([vocabulary.get(str(arg), -1) for arg in (self.name, *self.args)])
     
     def to_tuple(self) -> Tuple[Any]:
         """# (Predicate) to Tuple
 
         Tuple representation of predicate.
         """
-        return (self._name_, *self._args_)
+        return (self.name, *self.args)
     
     # DUNDERS ======================================================================================
     
@@ -75,8 +67,8 @@ class Predicate():
     
     def __repr__(self) -> str:
         """# Object Representation."""
-        return f"""<Predicate(name = {self._name_}, arity = {self.arity})>"""
+        return f"""<Predicate(name = {self.name}, arity = {self.arity})>"""
     
     def __str__(self) -> str:
         """# String Representation."""
-        return f"""{self._name_}({",".join(map(str, self._args_))})"""
+        return f"""{self.name}({",".join(map(str, self.args))})"""

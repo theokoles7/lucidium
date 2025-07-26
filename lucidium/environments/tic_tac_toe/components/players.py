@@ -6,6 +6,7 @@ This module provides the players for the Tic Tac Toe environment.
 __all__ = ["Player"]
 
 from enum           import Enum
+from functools      import cached_property
 
 from torch          import equal, tensor, Tensor
 
@@ -45,7 +46,7 @@ class Player(Enum):
         """
         return self.value["encoding"]
     
-    @property
+    @cached_property
     def opponent(self) -> "Player":
         """# Opponent
 
@@ -67,6 +68,28 @@ class Player(Enum):
         Symbolic representation of the player (e.g., 'X', 'O').
         """
         return self.value["symbol"]
+    
+    # METHODS ======================================================================================
+    
+    def to_one_hot(self) -> Tensor:
+        """# (Player) to One-Hot Tensor.
+        
+        Convert player to one-hot encoding representation.
+
+        ## Returns:
+            * Tensor:   One-hot encoding of player.
+        """
+        return self.encoding
+    
+    def to_tensor(self) -> Tensor:
+        """# (Player) to Tensor.
+        
+        Convert player to tensor representation.
+        
+        ## Returns:
+            * Tensor:   Tensor representation of player (scalar number)
+        """
+        return tensor(self.number)
     
     # CLASS METHODS ================================================================================
     

@@ -3,11 +3,12 @@
 Implementation of board component for tic-tac-toe.
 """
 
-from typing                                             import List, Tuple, Union
+from typing                                             import List, Literal, Optional, Set, Tuple, Union
 
-from torch                                              import Tensor
+from torch                                              import tensor, Tensor
 
 from lucidium.environments.tic_tac_toe.components.cell  import Cell
+from lucidium.symbolic                                  import Predicate
 
 class Board():
     """# (Tic-Tac-Toe) Board
@@ -57,11 +58,18 @@ class Board():
         return any(self._line_is_a_win_(line) for line in self.lines)
     
     @property
+    def is_draw(self) -> bool:
+        """# (Game) is Draw?
+        
+        True if board is full and there is now winner.
+        """
+        return self.is_full and not self.has_winner
+    
+    @property
     def is_full(self) -> bool:
         """# (Board) is Full?
 
-        ## Returns:
-            * bool: True if no empty cells remain.
+        True if no empty cells remain.
         """
         return all(not cell.is_empty for row in self._grid_ for cell in row)
     
@@ -127,7 +135,95 @@ class Board():
             # Reset each cell in row.
             for cell in row: cell.reset()
             
+    def to_predicate(self) -> Set[Predicate]:
+        """# (Board) to Predicate(s)
+        
+        Extract all symbolic predicates from the board state.
+
+        ## Returns:
+            * Set[Predicate]:   Predicate representation of board state.
+        """
+        # Initialize predicate set with positions.
+        predicates: Set[Predicate] =    set(
+                                            cell.to_predicate()
+                                            for row in self._grid_
+                                            for cell in row
+                                        )
+        
+        # Analyze lines.
+        predicates.update(self._extract_line_predicates_())
+        
+        # Discard any instances of None.
+        predicates.discard(None)
+        
+        # Provide predicates.
+        return predicates
+            
+    def to_tensor(self) -> Tensor:
+        """# (Board) to Tensor
+
+        ## Returns:
+            * Tensor:   Board state as tensor (shape = size x size).
+        """
+        return  tensor(
+                    [
+                        [
+                            cell.to_tensor().item()
+                            for cell
+                            in row
+                        ]
+                        for row
+                        in self._grid_
+                    ],
+                    dtype = int
+                )
+            
     # HELPERS ======================================================================================
+    
+    def _analyze_line_(self,
+        cells:      List[Cell],
+        line_type:  Literal["row", "column", "diagonal"],
+        line_index: int
+    ) -> Optional[Predicate]:
+        """# Analyze Line.
+        
+        Analuze line for applicable predicates.
+
+        ## Args:
+            * cells         (List[Cell]):   List of cells in line.
+            * line_type     (str):          One of "row", "column", "diagonal", or "anti-diagonal".
+            * line_index    (int):          Index of the line.
+
+        ## Returns:
+            * Predicate:    Predicate applicable to line, if any.
+        """
+        # Count positions in line.
+        x_count:    int =   sum(1 for cell in cells if cell.entry == "X")
+        o_count:    int =   sum(1 for cell in cells if cell.entry == "O")
+        
+        # If neither player has a position, no predicates apply.
+        if x_count == 0 and o_count == 0:   return None
+        
+        # If both players have position(s), the line has been blocked.
+        if x_count > 0 and o_count > 0:     return Predicate("blocked_line", (line_type, line_index))
+        
+        # If X occupies a line, but not O...
+        if x_count > 0 and o_count == 0:
+            
+            # If X occupies the whole line, it's a win.
+            if x_count == self._size_:      return Predicate("win", ("X", line_type, line_index))
+            
+            # Otherwise, specify how many positions X occupies.
+            else:                           return Predicate(f"{x_count}_in_line", ("X", line_type, line_index))
+        
+        # If O occupies a line, but not O...
+        if o_count > 0 and x_count == 0:
+            
+            # If O occupies the whole line, it's a win.
+            if o_count == self._size_:      return Predicate("win", ("O", line_type, line_index))
+            
+            # Otherwise, specify how many positions O occupies.
+            else:                           return Predicate(f"{o_count}_in_line", ("O", line_type, line_index))
     
     def _coordinate_to_index_(self,
         coordinate: Tuple[int, int]
@@ -143,6 +239,60 @@ class Board():
             * int:  Index equivalent of coordinate provided.
         """
         return coordinate[0] * self._size_ + coordinate[1]
+    
+    def _extract_line_predicates_(self) -> Set[Predicate]:
+        """# Extract Line Predicates.
+        
+        Extract predicates pertaining to lines (rows, columns, diagonals).
+
+        ## Returns:
+            * Set[Predicate]:   Line-based predicates.
+        """
+        # Initialize predicate set.
+        predicates: Set[Predicate] =    set()
+        
+        # For each row...
+        for r in range(self._size_):
+            
+            # Extract cells.
+            cells:  List[Cell] =    [self._grid_[r][c] for c in range(self._size_)]
+            
+            # Analyze row.
+            predicates.add(self._analyze_line_(
+                cells =         cells,
+                line_type =     "row",
+                line_index =    r
+            ))
+            
+        # For each column...
+        for c in range(self._size_):
+            
+            # Extract cells.
+            cells:  List[Cell] =    [self._grid_[r][c] for r in range(self._size_)]
+            
+            # Analyze column.
+            predicates.add(self._analyze_line_(
+                cells =         cells,
+                line_type =     "column",
+                line_index =    c
+            ))
+            
+        # Analyze main diagonal.
+        predicates.add(self._analyze_line_(
+            cells =         [self._grid_[i][i] for i in range(self._size_)],
+            line_type =     "diagonal",
+            line_index =    0
+        ))
+        
+        # Analyze anti-diagonal.
+        predicates.add(self._analyze_line_(
+            cells =         [self._grid_[i][self._size_ - i - 1] for i in range(self._size_)],
+            line_type =     "anti-diagonal",
+            line_index =    0
+        ))
+        
+        # Provide discovered predicates.
+        return predicates
     
     def _index_to_coordinate_(self,
         index:  int

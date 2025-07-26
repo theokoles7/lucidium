@@ -27,7 +27,6 @@ class Cell():
                                                 board.
         """
         # Define location.
-        self._coordinate_:  Tuple[int, int] =   coordinate
         self._row_:         int =               coordinate[0]
         self._column_:      int =               coordinate[1]
         
@@ -35,6 +34,14 @@ class Cell():
         self._player_:      Player =            Player.EMPTY
         
     # PROPERTIES ===================================================================================
+    
+    @property
+    def coordinate(self) -> Tuple[int, int]:
+        """# (Cell) Coordinate
+
+        Row, column coordinate of cell.
+        """
+        return (self._row_, self._column_)
     
     @property
     def entry(self) -> str:
@@ -84,21 +91,25 @@ class Cell():
         """
         self._player_: Player = Player.EMPTY
         
-    def to_symbolic(self) -> Predicate:
-        """# (Cell) to Symbolic Representation.
+    def to_predicate(self) -> Predicate:
+        """# (Cell) to Symbolic Representation
 
         ## Returns:
             * Predicate: Predicate representation of cell.
         """
-        return Predicate("position", self._player_.symbol, self._row_, self._column_)
+        # If cell is empty, provide empty predicate.
+        if self.is_empty: return Predicate("empty", (self._row_, self._column_))
+        
+        # Otherwise, provide predicate specifying player position.
+        return Predicate("position", (self._player_.symbol, self._row_, self._column_))
     
     def to_tensor(self) -> Tensor:
         """# (Cell) to Tensor
         
         ## Returns:
-            * Tensor:   One-hot tensor encoding of player.
+            * Tensor:   Tensor encoding of player state.
         """
-        return self._player_.encoding
+        return self._player_.to_tensor()
         
     # HELPERS ======================================================================================
     
