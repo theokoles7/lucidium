@@ -4,10 +4,14 @@ name: Release
 # Trigger on pushes to main (which will include tagged commits)
 on:
   push:
+    # Trigger on pushes to main branch (direct commits or PR merges)
     branches:
       - main
-  
-  # Keep manual trigger as backup option
+    # Trigger also on tags that match vX.Y.Z
+    tags:
+      - 'v*.*.*'
+
+  # Allow manual triggering from Actions UI
   workflow_dispatch:
     inputs:
       version_bump:
@@ -23,6 +27,7 @@ on:
         description: 'Specific version (optional, overrides bump type)'
         required: false
         type: string
+
 
 jobs:
   # Single job that handles all release scenarios
