@@ -4,7 +4,10 @@ This package defines various structures needed for symbolic learning.
 """
 
 __all__ =   [
-                "Predicate"
+                # Predicate structure and utilities.
+                "Predicate",
+                "predicate",
+                "extract_predicates"
             ]
 
-from lucidium.symbolic.predicate    import Predicate
+from lucidium.symbolic.predicate    import *

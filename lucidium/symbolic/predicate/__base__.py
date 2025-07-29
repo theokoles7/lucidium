@@ -1,7 +1,9 @@
-"""# lucidium.symbolic.predicate
+"""# lucidium.symbolic.predicate.base
 
 Symbolic predicate definition, structure, and utilities.
 """
+
+__all__ = ["Predicate"]
 
 from dataclasses    import dataclass
 from typing         import Any, Dict, Tuple
