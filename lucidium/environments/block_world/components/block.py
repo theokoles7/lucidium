@@ -5,7 +5,9 @@ Defines the block component for the Block World environment.
 
 __all__ = ["Block"]
 
-from typing import List, Optional
+from typing             import List, Optional
+
+from lucidium.symbolic  import predicate
 
 class Block():
     """# (Block World) Block
@@ -20,22 +22,27 @@ class Block():
     * **Grounded** if it has no parent.
     * **Placeable** if it is grounded or has no children.
     * **Moveable** if it is not grounded and has no children.
+    
+    Adapted from: https://github.com/google/neural-logic-machines/tree/master/scripts/blocksworld
     """
     
     def __init__(self,
-        index:  int,
+        id:  int,
         parent: Optional["Block"] =   None
     ):
         """# Instantiate Block.
 
         ## Args:
-            * index     (int):      Index of block within storage context.
+            * id        (int):      Id of block within storage context.
             * parent    (Block):    Block's parent, if block is not grounded.
         """
         # Define properties.
-        self._index_:       int =               index
+        self._id_:          int =               id
         self._parent_:      Optional[Block] =   parent
         self._children_:    List[Block] =       []
+        
+        # If parent if provided, add this block as its child.
+        if parent is not None: parent.add_child(child = self)
         
     # PROPERTIES ===================================================================================
     
@@ -45,17 +52,30 @@ class Block():
 
         Children belonging to this block.
         """
-        return self._children_
+        return self._children_.copy()
     
     @property
-    def index(self) -> int:
-        """# (Block's) Index.
+    def height(self) -> int:
+        """# (Block's) Height.
 
-        Index of this block.
+        Height at which block is currently located.
         """
-        return self._index_
+        # If this block is on the ground, its height is zero.
+        if self.is_grounded: return 0
+        
+        # Otherwise, this block is one unit higher than its parent.
+        return self.parent.height + 1
     
     @property
+    def id(self) -> int:
+        """# (Block's) Id.
+
+        Id of this block.
+        """
+        return self._id_
+    
+    @property
+    @predicate(name = "grounded")
     def is_grounded(self) -> bool:
         """# (Block) is Grounded?
 
@@ -64,6 +84,7 @@ class Block():
         return self._parent_ is None
     
     @property
+    @predicate(name = "moveable")
     def is_moveable(self) -> bool:
         """# (Block) is Moveable?
 
@@ -73,6 +94,7 @@ class Block():
         return self._parent_ is None and len(self._children_) == 0
     
     @property
+    @predicate(name = "placeable")
     def is_placeable(self) -> bool:
         """# (Block) is Placeable?
 
@@ -89,6 +111,14 @@ class Block():
         """
         return self._parent_
     
+    @property
+    def stack_size(self) -> int:
+        """# (Block's) Stack Size.
+
+        Number of blocks stacked on this block.
+        """
+        return 1 + sum(child.stack_size for child in self._children_)
+    
     # METHODS ======================================================================================
         
     def add_child(self,
@@ -99,8 +129,8 @@ class Block():
         ## Args:
             * child (Block):    Child block being added.
         """
-        # Add child.
-        self._children_.append(child)
+        # Add child, if it doesn't already exist.
+        if child not in self._children_: self._children_.append(child)
     
     def pick_up(self) -> None:
         """# Pick Up (Block).
@@ -108,13 +138,19 @@ class Block():
         Detach block from parent.
         
         ## Raises:
-            * ValueError:   If block has no parent.
+            * ValueError:   If block has no parent or is not moveable.
         """
         # If block has no parent...
         if self._parent_ is None:
             
             # Report error.
-            raise ValueError(f"Block {self._index_} has no parent (cannot be picked up).")
+            raise ValueError(f"Block {self._id_} cannot be picked up (has no parent/is grounded).")
+        
+        # If block is not moveable (has children on top)...
+        if not self.is_moveable:
+            
+            # Report error.
+            raise ValueError(f"Block {self._id_} is not moveable (has {len(self._children_)} children).")
         
         # Otherwise, remove this block from its parent.
         self._parent_.remove_child(child = self)
@@ -124,12 +160,18 @@ class Block():
         
     def place_on(self,
         block:  "Block"
-    ) -> None:
+    ) -> bool:
         """# Place on (Block).
 
         ## Args:
             * block (Block):    Block upon which this block will be placed.
+            
+        ## Returns:
+            * bool: True is block is placed successfully.
         """
+        # If this block is not placeable, return False.
+        if not self.is_placeable: return False
+        
         # Assign new parent.
         self._parent_ = block
         
@@ -151,17 +193,32 @@ class Block():
         if child not in self._children_:
             
             # Report error.
-            raise ValueError(f"Block {child.index} is not a child of block {self._index_}")
+            raise ValueError(f"Block {child.id} is not a child of block {self._id_}")
         
         # Otherwise, remove child.
         self._children_.remove(child)
         
+    def reset(self) -> None:
+        """# Reset (Block).
+
+        Reset block to initial state.
+        """
+        # Remove children.
+        self._children_.clear()
+        
+        # Remove parent.
+        self._parent_ = None
+        
     # DUNDERS ======================================================================================
+    
+    def __has__(self) -> int:
+        """# (Block) Hash"""
+        return hash(self._id_)
     
     def __repr__(self) -> str:
         """# (Block) Object Representation."""
         return  (
-                    f"""<Block(index = {self._index_}, """
+                    f"""<Block(id = {self._id_}, """
                     f"""grounded = {self.is_grounded}, """
                     f"""moveable = {self.is_moveable}, """
                     f"""placeable = {self.is_placeable})>"""
@@ -169,4 +226,4 @@ class Block():
         
     def __str__(self) -> str:
         """# (Block) String Representation."""
-        return str(self._index_)
+        return str(self._id_)

@@ -38,4 +38,4 @@ Tic-Tac-Toe provides a very straightforward opportunity for demonstrating neuro-
 * Unary predicates can be used for determining which player has entered a position on the board or if the position is empty.
 * Binary, Ternary, & U-nary predicates can be used to determine strategic/tactical concepts.
 
-    <img src="../../assets/images/tic-tac-toe_fork-pattern.png">
+    <img src="../../../assets/images/tic-tac-toe_fork-pattern.png">

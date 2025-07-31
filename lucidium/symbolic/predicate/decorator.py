@@ -9,7 +9,7 @@ from typing import Callable, List, Optional, Union
 
 def predicate(
     name:       Optional[str] =         None,
-    arguments:  Optional[List[str]] =   None
+    arguments:  Optional[List[str]] =   []
 ) -> Callable:
     """# Predicate (Decorator)
 
