@@ -3,8 +3,8 @@
 Defines the abstract registry system.
 """
 
-from argparse   import _SubParsersAction
-from typing     import Callable, Dict, List, Optional, Type
+from argparse   import Namespace, _SubParsersAction
+from typing     import Any, Callable, Dict, List, Optional, Type
 
 from .entry     import RegistryEntry
 
@@ -100,6 +100,29 @@ class Registry():
                             for tag in filter_by
                         )
                 ]
+        
+    def load(self,
+        name:       str,
+        arguments:  Optional[Namespace] =   None,
+        **kwargs
+    ) -> Any:
+        """# Load Registered Class.
+
+        ## Args:
+            * name      (str):          Registry entry name.
+            * arguments (Namespace):    Arguments to pass to class constructor. Defaults to None.
+
+        ## Returns:
+            * Any:  Instantiated class.
+        """
+        # Fetch entry according to name.
+        entry:  RegistryEntry = self.get_entry(key = name)
+        
+        # Extract class.
+        cls:    Type =          entry.cls
+        
+        # Load class.
+        return cls(**arguments, **kwargs)
         
     def load_all(self) -> None:
         """# Load all Registered Modules."""
