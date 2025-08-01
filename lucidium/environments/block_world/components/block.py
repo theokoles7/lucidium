@@ -75,11 +75,12 @@ class Block():
         return self._id_
     
     @property
-    @predicate(name = "grounded")
-    def is_grounded(self) -> bool:
-        """# (Block) is Grounded?
+    @predicate(name = "ground")
+    def is_ground(self) -> bool:
+        """# (Block) is Ground?
 
-        True if block is located on ground (has no parent).
+        True if block is located on ground (has no parent). Semantically, this means that the block 
+        *is the ground*.
         """
         return self._parent_ is None
     
@@ -91,7 +92,7 @@ class Block():
         True if block is located on ground (has no parent) and there are no blocks on top of it 
         (has no children).
         """
-        return self._parent_ is None and len(self._children_) == 0
+        return self._parent_ is not None and len(self._children_) == 0
     
     @property
     @predicate(name = "placeable")
@@ -169,14 +170,11 @@ class Block():
         ## Returns:
             * bool: True is block is placed successfully.
         """
-        # If this block is not placeable, return False.
-        if not self.is_placeable: return False
-        
         # Assign new parent.
         self._parent_ = block
         
         # Add this block to parent's children.
-        self._parent_.add_child(child = self)
+        block.add_child(child = self)
         
     def remove_child(self,
         child:  "Block"
@@ -211,7 +209,21 @@ class Block():
         
     # DUNDERS ======================================================================================
     
-    def __has__(self) -> int:
+    def __eq__(self,
+        other:  "Block"
+    ) -> bool:
+        """# (Blocks) Are Equal?"""
+        # Indicate if blocks have the same...
+        return  all([
+                    # ID
+                    self.id             == other.id,
+                    # Parent
+                    self.parent.id      == other.parent.id,
+                    # And children
+                    set(self.children)  == set(other.children)
+                ])
+    
+    def __hash__(self) -> int:
         """# (Block) Hash"""
         return hash(self._id_)
     
@@ -219,9 +231,10 @@ class Block():
         """# (Block) Object Representation."""
         return  (
                     f"""<Block(id = {self._id_}, """
-                    f"""grounded = {self.is_grounded}, """
+                    f"""ground = {self.is_ground}, """
                     f"""moveable = {self.is_moveable}, """
-                    f"""placeable = {self.is_placeable})>"""
+                    f"""placeable = {self.is_placeable}), """
+                    f"""parent = {self.parent}>"""
                 )
         
     def __str__(self) -> str:

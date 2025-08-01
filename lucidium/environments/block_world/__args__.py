@@ -55,6 +55,14 @@ def register_block_world_parser(
     )
     
     _configuration_.add_argument(
+        "--one-stack",
+        dest =          "one_stack",
+        action =        "store_true",
+        default =       False,
+        help =          """Initialize blocks in one stack at the start of each episode."""
+    )
+    
+    _configuration_.add_argument(
         "--random-order",
         dest =          "random_order",
         action =        "store_true",
