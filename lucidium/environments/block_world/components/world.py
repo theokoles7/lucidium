@@ -9,7 +9,8 @@ from functools                                              import cached_proper
 from random                                                 import choice
 from typing                                                 import Dict, List, Optional, Tuple
 
-from torch                                                  import tensor, Tensor
+from numpy.typing                                           import NDArray
+from torch                                                  import float32, tensor, Tensor
 
 from lucidium.environments.block_world.components.block     import Block
 
@@ -126,7 +127,7 @@ class World():
         ## Returns:
             * Tensor:   Tensor representation of world.
         """
-        
+        return tensor(self._get_coordinates_(), dtype = float32)
     
     def move_block(self,
         from_index: int,
@@ -197,6 +198,32 @@ class World():
             leaves.append(this)
             
     # HELPERS ======================================================================================
+    
+    def _get_coordinates_(self,
+        absolute:   bool =  False
+    ) -> NDArray:
+        """# Get coordinates of each block in world.
+        
+        ## Args:
+            * absolute  (bool):
+                * When True:    Block's coordinate will be (block's ID, block's height)
+                * When False:   Block's coordinate will be (stack #, block's height)
+
+        ## Returns:
+            * NDArray:  Numpy array of block coordinates.
+        """
+        # Initialize array of coordinates.
+        coordinates:    List[Tuple[int, int]] = []
+        
+        # For each block...
+        for block in self._blocks_:
+            
+            # Append coordinate.
+            coordinates.append((block.id if absolute and not block.is_ground else block.stack_root))
+            
+        # Apply random ordering if set.
+        if self._random_order_ is not None: coordinates = [coordinates[self._random_order_[i]] for i in range(len(self.size))]
+            
     
     def _get_ground_blocks_(self) -> Tensor:
         """# Get Ground Blocks.
