@@ -61,7 +61,7 @@ class Block():
         Height at which block is currently located.
         """
         # If this block is on the ground, its height is zero.
-        if self.is_grounded: return 0
+        if self.is_ground: return 0
         
         # Otherwise, this block is one unit higher than its parent.
         return self.parent.height + 1
@@ -119,6 +119,28 @@ class Block():
         Number of blocks stacked on this block.
         """
         return 1 + sum(child.stack_size for child in self._children_)
+    
+    @property
+    def stack_root(self) -> "Block":
+        """# (Block's) Stack Root.
+
+        The block at the bottom of the stack.
+        """
+        # If this block is the ground, root is this block.
+        if self.is_ground: return self
+        
+        # Otherwise, starting with this block...
+        current:    Block = self
+        
+        # Parse through parents until we find the ground...
+        while not current.parent.is_ground:
+            
+            # Move to parent.
+            current:    Block = current.parent
+            
+        # Provide the block located on the ground when we find it.
+        return current
+            
     
     # METHODS ======================================================================================
         
