@@ -10,7 +10,7 @@
 
 ### Properties:
 
-* #### `is_grounded`
+* #### `is_ground`
 
     A block $x$ is "grounded" if it is located on the ground, meaning that it currently has no parent.
 
