@@ -6,9 +6,10 @@ Defines the Block World container that manages all logical block relationships a
 __all__ = ["World"]
 
 from functools                                              import cached_property
-from random                                                 import choice
+from random                                                 import choice, shuffle
 from typing                                                 import Dict, List, Optional, Tuple
 
+from numpy                                                  import array
 from numpy.typing                                           import NDArray
 from torch                                                  import float32, tensor, Tensor
 
@@ -27,39 +28,29 @@ class World():
     """
     
     def __init__(self,
-        block_quantity: List[Block] =           3,
-        random_order:   Optional[List[int]] =   None,
-        one_stack:      bool =                  False,
+        block_quantity: List[Block] =   3,
+        random_order:   bool =          False,
+        one_stack:      bool =          False,
         **kwargs
     ):
         """# Instantiate World.
 
         ## Args:
-            * block_quantity    (int):          Number of blocks to place in environment. Defaults to 3.
-            * random_order      (List[int]):    Index permutation for randomized ordering of blocks.
+            * block_quantity    (int):  Number of blocks to place in environment. Defaults to 3.
+            * random_order      (bool): Use random block ordering.
+            * one_stack         (bool): Initialize blocks in one stack.
         """
-        # Define block index.
-        self._block_index_: List[int] = list(range(block_quantity))
+        # Define configuration.
+        self._block_quantity_:      int =           block_quantity
+        self._use_random_order_:    bool =          random_order
+        self._use_one_stack_:       bool =          one_stack
         
-        # Define size.
-        self._size_:        int =       block_quantity
+        # Initialize block storage and ordering.
+        self._blocks_:              List[Block] =   []
+        self._random_order_:        List[int] =     None
+        self._inverse_order_:       List[int] =     None
         
-        # Define one-stack flag.
-        self._one_stack_:   bool =      one_stack
-        
-        # If random order is provided...
-        if random_order is not None:
-            
-            # If the random order does not account for each block in world...
-            if len(random_order) != block_quantity:
-                
-                # Report error.
-                raise ValueError(f"Random order length ({len(random_order)}) must match number of blocks ({block_quantity})")
-            
-            # Update block index to be random permutation.
-            self._block_index_ = random_order
-        
-        # Generate blocks.
+        # Trigger block generation.
         self.reset()
         
     # PROPERTIES ===================================================================================
@@ -70,7 +61,11 @@ class World():
 
         Blocks currently stored in world.
         """
-        return self._blocks_.copy()
+        # If no random ordering is being used, simply return blocks.
+        if not self._use_random_order_: return self._blocks_.copy()
+        
+        # Otherwise, return blocks in random order prescribed.
+        return [self._blocks_[self._random_order_[b]] for b in range(len(self._blocks_))].copy()
     
     @property
     def size(self) -> int:
@@ -78,7 +73,7 @@ class World():
 
         Quantity of blocks in world.
         """
-        return self._size_
+        return self._block_quantity_
     
     @property
     def stacks(self) -> List[List[Block]]:
@@ -129,6 +124,82 @@ class World():
         """
         return tensor(self._get_coordinates_(), dtype = float32)
     
+    def get_configuration(self) -> List[int]:
+        """# Get Configuration.
+
+        ## Returns:
+            * List[int]:    Parent index for each block (-1 for ground).
+        """
+        return [block.parent.id if block.parent is not None else -1 for block in self._blocks_]
+    
+    def get_coordinates(self,
+        absolute:   bool =  False,
+        sort:       bool =  False
+    ) -> NDArray:
+        """# Get Coordinates.
+
+        Args:
+            absolute (bool, optional): _description_. Defaults to False.
+            sort (bool, optional): _description_. Defaults to False.
+
+        Returns:
+            NDArray: _description_
+        """
+        # Initialize list of coordinates.
+        coordinates:    List[Tuple[int, int]] = [None for _ in range(self._block_quantity_)]
+        
+        # Define depth first search recursion.
+        def depth_first_search(block: Block) -> None:
+            """# Depth First Search
+
+            ## Args:
+                * block (Block):    Block whose sub-tree is being searched.
+            """
+            # If this block is the ground...
+            if block.is_ground:
+                
+                # It's coordinate is the origin.
+                coordinates[block.id] = (0, 0)
+                
+                # For each child...
+                for c, child in enumerate(block.children):
+                    
+                    # Assign its coordinate.
+                    coordinates[child.id] = (self._get_inverse_index_(child.id) if absolute else c, 1)
+                    
+                # Recurse on child.
+                depth_first_search(block = child)
+                
+            # Otherwise...
+            else:
+                
+                # Extract coordinate already found.
+                coordinate: Tuple[int, int] =   coordinates[block.id]
+                
+                # Assert that one was defined.
+                assert coordinate is not None, f"Block {block.id} coordinate was not defined yet."
+                
+                # Extract components.
+                x, y = coordinate
+                
+                # For each child...
+                for child in block.children:
+                    
+                    # Increment the child's y component.
+                    coordinates[child.id] = (x, y + 1)
+                    
+                    # Recurse on child.
+                    depth_first_search(child)
+                    
+        # Begin search from ground.
+        depth_first_search(block = self._blocks_[0])
+        
+        # Apply permutation.
+        coordinates:    NDArray =   array(self._permute_(sequence = coordinates))
+        
+        # Provide coordinates.
+        return array(sorted(list(map(tuple, coordinates)))) if sorted else coordinates
+    
     def move_block(self,
         from_index: int,
         to_index:   int
@@ -140,9 +211,6 @@ class World():
         ## Args:
             * from_index    (int):  Block to be picked up.
             * to_index      (int):  Block to be stacked onto.
-
-        ## Raises:
-            * ValueError:   If the move is not valid (blocked by constraints).
             
         ## Returns:
             * bool:             True if move was made successfully.
@@ -169,7 +237,10 @@ class World():
         
         Reset world to initial state.
         """
-        # Initialize base block.
+        # Clear existing blocks.
+        self._blocks_.clear()
+        
+        # Initialize ground block.
         self._blocks_:  List[Block] =   [Block(id = 0)]
         
         # Initialize list of leaves.
@@ -197,6 +268,20 @@ class World():
             self._blocks_.append(this)
             leaves.append(this)
             
+        # If random ordering is enabled, set random order.
+        if self._use_random_order_: self.set_random_order()
+        
+    def set_random_order(self) -> None:
+        """# Set Random Order.
+        
+        Set random block index and calculate its inverse.
+        """
+        # Generate random block order.
+        self._random_order_:    List[int] = shuffle(list(range(self._block_quantity_)))
+        
+        # Calculate inverse.
+        self._inverse_order_:   List[int] = sorted(range(self._block_quantity_), key = lambda x: self._random_order_[x])
+            
     # HELPERS ======================================================================================
     
     def _get_coordinates_(self,
@@ -221,8 +306,8 @@ class World():
             # Append coordinate.
             coordinates.append((block.id if absolute and not block.is_ground else block.stack_root))
             
-        # Apply random ordering if set.
-        if self._random_order_ is not None: coordinates = [coordinates[self._random_order_[i]] for i in range(len(self.size))]
+        # # Apply random ordering if set.
+        # if self._random_order_ is not None: coordinates = [coordinates[self._random_order_[i]] for i in range(len(self.size))]
             
     
     def _get_ground_blocks_(self) -> Tensor:
@@ -248,6 +333,19 @@ class World():
             * Tensor:   Tensor representation of placeable blocks.
         """
         return tensor([block.is_placeable for block in self._blocks_])
+    
+    def _get_inverse_index_(self,
+        index:  int
+    ) -> int:
+        """# Get Inverse Index.
+
+        ## Args:
+            * index (int):  Index whose inverse is being retrieved.
+
+        ## Returns:
+            * int:  Inverse of index provided.
+        """
+        return self._inverse_order_[index] if self._inverse_order_ is not None else index
         
     # DUNDERS ======================================================================================
     

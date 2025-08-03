@@ -33,6 +33,8 @@ class BlockWorld(Environment):
         block_quantity:         int =   3,
         random_order:           bool =  False,
         one_stack:              bool =  False,
+        shape_only:             bool =  False,
+        fix_ground:             bool =  False,
         
         # Dynamics.
         fall_probability:       float = 0.0,

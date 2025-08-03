@@ -75,6 +75,14 @@ class Block():
         return self._id_
     
     @property
+    def index(self) -> int:
+        """# (Block) Index
+        
+        Block's index in world's block storage.
+        """
+        return self._id_
+    
+    @property
     @predicate(name = "ground")
     def is_ground(self) -> bool:
         """# (Block) is Ground?
@@ -89,8 +97,8 @@ class Block():
     def is_moveable(self) -> bool:
         """# (Block) is Moveable?
 
-        True if block is located on ground (has no parent) and there are no blocks on top of it 
-        (has no children).
+        True if block is the ground (has no parent) and there are no blocks on top of it (has no 
+        children).
         """
         return self._parent_ is not None and len(self._children_) == 0
     
@@ -99,8 +107,8 @@ class Block():
     def is_placeable(self) -> bool:
         """# (Block) is Placeable?
 
-        True if there are no blocks on top of this block (has no children) or this block is located 
-        on the ground (has no parent).
+        True if there are no blocks on top of this block (has no children) or this block is the 
+        ground (has no parent).
         """
         return self._parent_ is None or len(self._children_) == 0
     
@@ -167,7 +175,7 @@ class Block():
         if self._parent_ is None:
             
             # Report error.
-            raise ValueError(f"Block {self._id_} cannot be picked up (has no parent/is grounded).")
+            raise ValueError(f"Block {self._id_} cannot be picked up (has no parent/is ground).")
         
         # If block is not moveable (has children on top)...
         if not self.is_moveable:
@@ -192,11 +200,17 @@ class Block():
         ## Returns:
             * bool: True is block is placed successfully.
         """
+        # If target block is not placeable, this block cannot be placed.
+        if not block.is_placeable: return False
+        
         # Assign new parent.
         self._parent_ = block
         
         # Add this block to parent's children.
         block.add_child(child = self)
+        
+        # Indicate that block was successfully placed.
+        return True
         
     def remove_child(self,
         child:  "Block"
@@ -235,6 +249,9 @@ class Block():
         other:  "Block"
     ) -> bool:
         """# (Blocks) Are Equal?"""
+        # If other object is not a block, no comparison can be made.
+        if not isinstance(other, Block): return False
+        
         # Indicate if blocks have the same...
         return  all([
                     # ID
