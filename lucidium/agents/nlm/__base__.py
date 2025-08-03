@@ -20,7 +20,7 @@ from lucidium.registries            import register_agent
 from lucidium.utilities.logger      import get_child
 
 @register_agent(
-    name =      "NLM",
+    name =      "nlm",
     tags =      [
                     "neuro-symbolic",
                     "value-based",
