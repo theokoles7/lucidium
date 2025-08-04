@@ -1,4 +1,4 @@
-"""# ludorum.agents.q_learning
+"""# lucidium.agents.q_learning.base
 
 Implementation based on "Q-Learning" by Watkins & Dayan (1992).
 Link to paper: https://link.springer.com/content/pdf/10.1007/BF00992698.pdf
