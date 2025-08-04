@@ -18,12 +18,12 @@ __all__ =   [
             ]
 
 # Registry & component classes.
-from .__base__      import Registry
-from .entry         import RegistryEntry
+from lucidium.registries.__base__   import Registry
+from lucidium.registries.entry      import RegistryEntry
 
 # Registries.
 AGENT_REGISTRY:         Registry =  Registry(name = "agents")
 ENVIRONMENT_REGISTRY:   Registry =  Registry(name = "environments")
 
 # Registration decorators 
-from .decorators    import register_agent, register_environment
+from lucidium.registries.decorators import register_agent, register_environment

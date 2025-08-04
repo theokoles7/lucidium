@@ -8,6 +8,8 @@ __all__ = ["parse_lucidium_arguments"]
 from argparse                           import Action, ArgumentParser, _ArgumentGroup, HelpFormatter, Namespace, _SubParsersAction
 from typing                             import override
 
+from lucidium.registries                import AGENT_REGISTRY, ENVIRONMENT_REGISTRY
+
 def parse_lucidium_arguments() -> Namespace:
     """# Parse Lucidium Arguments.
     
@@ -61,12 +63,6 @@ def parse_lucidium_arguments() -> Namespace:
     # +============================================================================================+
     # | END ARGUMENTS                                                                              |
     # +============================================================================================+
-
-    from lucidium.registries import AGENT_REGISTRY, ENVIRONMENT_REGISTRY
-    
-    # Force loading of all agents and environments.
-    AGENT_REGISTRY.load_all()
-    ENVIRONMENT_REGISTRY.load_all()
     
     # Register agent and environment parsers.
     AGENT_REGISTRY.register_parsers(parent_subparser = _subparser_)
@@ -131,14 +127,7 @@ class CommandHelpFormatter(HelpFormatter):
             
         **Note**: This method has side effects - it loads all registry entries to determine 
         categorization. Debug output is printed to help with troubleshooting registration issues.
-        """
-        # Import registries.
-        from lucidium.registries import AGENT_REGISTRY, ENVIRONMENT_REGISTRY
-        
-        # Ensure all agents/environments are loaded.
-        AGENT_REGISTRY.load_all()
-        ENVIRONMENT_REGISTRY.load_all()
-        
+        """        
         # Build the help text with categories.
         parts = []
         

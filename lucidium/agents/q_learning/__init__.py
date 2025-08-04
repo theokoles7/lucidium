@@ -12,7 +12,7 @@ __all__ =   [
             ]
 
 # Agent class.
-from agents.q_learning.__base__ import QLearning
+from lucidium.agents.q_learning.__base__    import QLearning
 
 # Main process.
-from agents.q_learning.__main__ import main
+from lucidium.agents.q_learning.__main__    import main

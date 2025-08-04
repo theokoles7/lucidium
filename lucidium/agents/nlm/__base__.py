@@ -21,11 +21,7 @@ from lucidium.utilities.logger      import get_child
 
 @register_agent(
     name =      "nlm",
-    tags =      [
-                    "neuro-symbolic",
-                    "value-based",
-                    "model-free"
-                ],
+    tags =      ["neuro-symbolic", "value-based", "model-free"],
     parser =    register_nlm_parser
 )
 class NeuralLogicMachine(Module, Agent):
