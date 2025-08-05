@@ -1,4 +1,4 @@
-"""# ludorum.agents.q_learning
+"""# lucidium.agents.q_learning
 
 This package implements the Q-Learning agent proposed in the 1992 paper by Watkins & Dayan.
 """

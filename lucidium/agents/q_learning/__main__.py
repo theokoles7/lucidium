@@ -1,4 +1,4 @@
-"""# ludorum.agents.q_learning.main"""
+"""# lucidium.agents.q_learning.main"""
 
 from logging                                import Logger
 

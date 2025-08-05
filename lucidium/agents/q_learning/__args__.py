@@ -1,4 +1,4 @@
-"""# ludorum.agents.q_learning.args
+"""# lucidium.agents.q_learning.args
 
 Argument definitions and parsing for Q-Learning agent.
 """
@@ -104,6 +104,17 @@ def register_q_learning_parser(
                     of training. By setting a minimum value for exploration, the agent can still 
                     occasionally discover new actions, avoiding getting stuck in a local optimum.
                     Defaults to 0.01."""
+    )
+    
+    _exploration_.add_argument(
+        "--decay-interval",
+        dest =      "decay_interval",
+        type =      str,
+        choices =   ["by-episode", "by-step"],
+        default =   "by-step",
+        help =      """Interval by which exploration rate will decay. Decaying by step at a small 
+                    rate is convention, however decaying by episode at a larger rate is sometimes 
+                    used."""
     )
     
     # Q-TABLE INITIALIZATION ==============================================

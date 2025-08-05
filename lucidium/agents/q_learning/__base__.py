@@ -7,7 +7,7 @@ Link to paper: https://link.springer.com/content/pdf/10.1007/BF00992698.pdf
 __all__ = ["QLearning"]
 
 from logging                                import Logger
-from typing                                 import Literal
+from typing                                 import Literal, override
 
 from numpy                                  import max
 from numpy.random                           import rand
@@ -41,6 +41,7 @@ class QLearning(Agent):
         exploration_rate:       float =                                                     1.0,
         exploration_decay:      float =                                                     0.99,
         exploration_min:        float =                                                     0.01,
+        decay_interval:         Literal["by-step", "by-episode"] =                          "by-step",
         initialization_method:  Literal["zeros", "random", "small-random", "optimistic"] =  "zeros",
         **kwargs
     ):
@@ -88,6 +89,10 @@ class QLearning(Agent):
                                                 can still occasionally discover new actions, 
                                                 avoiding getting stuck in a local optimum. Defaults 
                                                 to 0.01.
+            * decay_interval        (str):      Interval by which exploration rate (epsilon) will 
+                                                decay. Defaults to "by-step".
+                * by-step:      Decaying every step by a small rate is conventional.
+                * by-episode:   Decaying by episode by a larger rate is unconventional.
             * initialization_method (str):      Initialize Q-Table with specific values (defaults to 
                                                 "zeros"):
                 * zeros:        Common choice when you assume that the agent has no prior knowledge 
@@ -122,6 +127,7 @@ class QLearning(Agent):
         self._exploration_rate_:    float =         exploration_rate
         self._exploration_decay_:   float =         exploration_decay
         self._exploration_min_:     float =         exploration_min
+        self._decay_interval_:      str =           decay_interval
         
         # Initialize Q-Table.
         self._q_table_:             QTable =        QTable(
@@ -250,7 +256,8 @@ class QLearning(Agent):
         self._exploration_rate_:    float = max(value, self.exploration_min)
     
     # METHODS ======================================================================================
-        
+    
+    @override
     def act(self,
         state:  int
     ) -> int:
@@ -264,11 +271,23 @@ class QLearning(Agent):
         ## Returns:
             * int:  Index of action chosen.
         """
-        # Explore if exploration rate (epsilon) is higher than randomly chosen value.
-        if rand() < self._exploration_rate_: return self._action_space_.sample()
+        # Cache current state.
+        self._current_state_:   int =   state
         
-        # Otherwise, choose max-value action from Q-table based on current state.
-        return self._q_table_.get_best_action(state = state)
+        # If exploration rate (epsilon) is higher than a randomly chosen value...
+        if rand() < self._exploration_rate_:
+            
+            # Explore.
+            self._current_action_:  int =   self._action_space_.sample()
+        
+        # Otherwise...
+        else:
+            
+            # Choose max-value action from Q-table based on current state.
+            self._current_action_:  int =   self._q_table_.get_best_action(state = state)
+            
+        # Submit chosen action.
+        return self._current_action_
     
     def decay_epsilon(self) -> None:
         """# Decay Exploration Rate.
@@ -281,7 +300,8 @@ class QLearning(Agent):
         
         # Log action for debugging.
         self.__logger__.debug(f"Exploration rate updated to {self._exploration_rate_}")
-        
+    
+    @override
     def load_model(self,
         path:   str
     ) -> None:
@@ -298,11 +318,10 @@ class QLearning(Agent):
         # Save Q-table to file.
         self._q_table_.load(path = path)
     
+    @override
     def observe(self,
-        state:      int,
-        action:     int,
+        new_state:  int,
         reward:     float,
-        next_state: int,
         done:       bool
     ) -> None:
         """# Update Q-table.
@@ -322,25 +341,27 @@ class QLearning(Agent):
             * max_a Q(s', a):   Maximum value for the next state over all possible actions
 
         ## Args:
-            * state         (int):      State of the agent before action being taken.
-            * action        (int):      Action chosen by agent.
-            * reward        (float):    Reward yielded by action taken.
-            * next_state    (int):      State of the agent after action is taken. 
-            * done          (bool):     Indicates if agent has reached end state.
+            * new_state (Any):      State of environment after action was submitted.
+            * reward    (float):    Reward yielded/penalty incurred by action submitted to 
+                                    environment.
+            * done      (bool):     Flag indicating if new state is terminal.
         """
         # Log for debugging.
-        self.__logger__.debug(f"Updating Q-table[state: {state}, action: {action}, reward: {reward}]")
+        self.__logger__.debug(f"Updating Q-table[state: {self._current_state_}, action: {self._current_action_}, reward: {reward}]")
         
         # Define new action-state value in Q-table.
-        self._q_table_[state][action] +=    (
-                                                self._learning_rate_ * (
-                                                    reward + (
-                                                            (self._discount_rate_ * 0) 
-                                                            if done 
-                                                            else self._q_table_.get_best_value(state = next_state)
-                                                    ) - self._q_table_[state][action]
-                                                )
-                                            )
+        self._q_table_[self._current_state_][self._current_action_] += (
+            self._learning_rate_ * (
+                reward + (
+                        (self._discount_rate_ * 0) 
+                        if done 
+                        else self._q_table_.get_best_value(state = new_state)
+                ) - self._q_table_[self._current_state_][self._current_action_]
+            )
+        )
+        
+        # Decay exploration rate (epsilon).
+        if not (self._decay_interval_ == "by-episode" and not done): self.decay_epsilon()
         
     def save_config(self,
         path:   str
@@ -373,7 +394,8 @@ class QLearning(Agent):
         
         # Log save location.
         self.__logger__.info(f"Q-Learning configuration saved to {path}/q_learning_config.json")
-        
+    
+    @override
     def save_model(self,
         path:   str
     ) -> None:
