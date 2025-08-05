@@ -9,7 +9,8 @@ __all__ =   [
                 
                 # Concrete agent classes.
                 "NeuralLogicMachine",
-                "QLearning"
+                "QLearning",
+                "SARSA"
             ]
 
 # Abstract agent class.
@@ -18,3 +19,4 @@ from lucidium.agents.__base__   import Agent
 # Concrete agent classes.
 from lucidium.agents.nlm        import NeuralLogicMachine
 from lucidium.agents.q_learning import QLearning
+from lucidium.agents.sarsa      import SARSA

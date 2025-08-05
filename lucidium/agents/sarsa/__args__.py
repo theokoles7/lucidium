@@ -1,28 +1,28 @@
-"""# lucidium.agents.q_learning.args
+"""# lucidium.agents.sarsa.args
 
-Argument definitions and parsing for Q-Learning agent.
+Argument definitions and parsing for SARSA agent.
 """
 
-__all__ = ["register_q_learning_parser"]
+__all__ = ["register_sarsa_parser"]
 
 from argparse   import _ArgumentGroup, ArgumentParser, _SubParsersAction
 
-def register_q_learning_parser(
+def register_sarsa_parser(
     parent_subparser:   _SubParsersAction
 ) -> None:
-    """# Register Q-Learning Argument Parser.
+    """# Register SARSA Argument Parser.
     
-    Add Q-Learning agent sub-parser & arguments to parent's sub-parser.
+    Add SARSA agent sub-parser & arguments to parent's sub-parser.
 
     ## Args:
         * parent_subparser  (_SubParsersAction):    Parent's sub-parser object.
     """
-    # Initialize Q-Learning Agent parser.
+    # Initialize SARSA Agent parser.
     _parser_:       ArgumentParser =    parent_subparser.add_parser(
-        name =          "q-learning",
-        help =          "Q-Learning agent.",
-        description =   """Q-Learning is an off-policy, tabular-based, value-based algorithm.""",
-        epilog =        """Implementation based on "Q-Learning" by Watkins & Dayan (1992). Link to 
+        name =          "sarsa",
+        help =          "SARSA agent.",
+        description =   """SARSA is an off-policy, tabular-based, value-based algorithm.""",
+        epilog =        """Implementation based on "SARSA" by Watkins & Dayan (1992). Link to 
                         paper: https://link.springer.com/content/pdf/10.1007/BF00992698.pdf"""
     )
     
@@ -76,7 +76,7 @@ def register_q_learning_parser(
                     the action that is believed to be optimal based on its current knowledge (i.e., 
                     the action with the highest Q-value). When set high, the agent is more likely to 
                     explore new actions. When low, the agent favors exploiting its current knowledge. 
-                    To utilize a Q-Learning agent as presented in the seminal paper, simply define 
+                    To utilize a SARSA agent as presented in the seminal paper, simply define 
                     this value as 0.0 to neglect exploration. Defaults to 1.0."""
     )
     

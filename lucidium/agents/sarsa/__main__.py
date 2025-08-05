@@ -1,4 +1,4 @@
-"""# lucidium.agents.q_learning.main"""
+"""# lucidium.agents.sarsa.main"""
 
 from logging                                import Logger
 
@@ -8,14 +8,14 @@ def main(
     action: str,
     **kwargs
 ) -> None:
-    """# Execute Q-Learning Action.
+    """# Execute SARSA Action.
 
     ## Args:
-        * action    (str):  Q-Learning action being executed.
+        * action    (str):  SARSA action being executed.
     """
     # Initialize logger.
     _logger_:       Logger =            get_child(
-                                            logger_name =   "q-learning.main"
+                                            logger_name =   "sarsa.main"
                                         )
     
     try:# Execute action.

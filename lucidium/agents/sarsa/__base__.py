@@ -1,36 +1,38 @@
-"""# lucidium.agents.q_learning.base
+"""# lucidium.agents.sarsa.base
 
-Implementation based on "Q-Learning" by Watkins & Dayan (1992).
-Link to paper: https://link.springer.com/content/pdf/10.1007/BF00992698.pdf
+Implementation based on "Online SARSA Using Connectionist Systems" by Rummery & Niranjan 
+(1994).
+Link to paper: https://www.researchgate.net/profile/Mahesan-Niranjan/publication/2500611_On-Line_SARSA_Using_Connectionist_Systems/links/5438d5db0cf204cab1d6db0f/On-Line-SARSA-Using-Connectionist-Systems.pdf?_sg%5B0%5D=HYd0h230b7WOR6m4hj5yx01K97aS61Z0DufUURMQr9ZqMqcEVZ0dNpG84h6uCfRl_M40FNkXgRX-GnpnxH31Ww.jBF3fgrlhaJYs3bDEaHQU22nRpKP0zKeF_oOsqh7WddL8pfxAomPSbeANzdmLP9YPB26HbLeSaEJqhFgzIxvWQ&_sg%5B1%5D=CZtZhHTEMgSwBZrpZU_7BACd8RH04JUKiITdXRQJ6MQ9SFS27jreZmcsuNcqYYWRoxcwBE-xBMbrfl1QobmEZ65bmkmpzonq5JoLRIIUKXne.jBF3fgrlhaJYs3bDEaHQU22nRpKP0zKeF_oOsqh7WddL8pfxAomPSbeANzdmLP9YPB26HbLeSaEJqhFgzIxvWQ&_iepl=
 """
 
-__all__ = ["QLearning"]
+from logging                            import Logger
+from typing                             import Literal, override
 
-from logging                                import Logger
-from typing                                 import Literal, override
+from numpy                              import max
+from numpy.random                       import rand
 
-from numpy                                  import max
-from numpy.random                           import rand
-
-from lucidium.agents.__base__               import Agent
-from lucidium.agents.components             import QTable
-from lucidium.agents.q_learning.__args__    import register_q_learning_parser
-from lucidium.registries                    import register_agent
-from lucidium.spaces                        import Space
-from lucidium.utilities                     import get_child
+from lucidium.agents.__base__           import Agent
+from lucidium.agents.components         import QTable
+from lucidium.agents.sarsa.__args__     import register_sarsa_parser
+from lucidium.registries                import register_agent
+from lucidium.spaces                    import Space
+from lucidium.utilities                 import get_child
 
 @register_agent(
-    name =      "q-learning",
-    tags =      ["off-policy", "tabular-based", "value-based"],
-    parser =    register_q_learning_parser
+    name =      "sarsa",
+    tags =      ["on-policy", "tabular-based", "value-based", "temporal-difference"],
+    parser =    register_sarsa_parser
 )
-class QLearning(Agent):
-    """# Q-Learning Agent.
+class SARSA(Agent):
+    """# SARSA Agent
     
-    Q-Learning is an off-policy, tabular-based, value-based algorithm.
+    SARSA (State-Action-Reward-State-Action) is an on-policy temporal difference control algorithm. 
+    Unlike SARSA, SARSA updates Q-values using the actual next action that will be taken 
+    according to the current policy, making it an on-policy method.
     
-    Implementation based on "Q-Learning" by Watkins & Dayan (1992). Link to paper: 
-    https://link.springer.com/content/pdf/10.1007/BF00992698.pdf
+    Implementation based on "Online SARSA Using Connectionist Systems" by Rummery & Niranjan 
+    (1994).
+    Link to paper: https://www.researchgate.net/profile/Mahesan-Niranjan/publication/2500611_On-Line_SARSA_Using_Connectionist_Systems/links/5438d5db0cf204cab1d6db0f/On-Line-SARSA-Using-Connectionist-Systems.pdf?_sg%5B0%5D=HYd0h230b7WOR6m4hj5yx01K97aS61Z0DufUURMQr9ZqMqcEVZ0dNpG84h6uCfRl_M40FNkXgRX-GnpnxH31Ww.jBF3fgrlhaJYs3bDEaHQU22nRpKP0zKeF_oOsqh7WddL8pfxAomPSbeANzdmLP9YPB26HbLeSaEJqhFgzIxvWQ&_sg%5B1%5D=CZtZhHTEMgSwBZrpZU_7BACd8RH04JUKiITdXRQJ6MQ9SFS27jreZmcsuNcqYYWRoxcwBE-xBMbrfl1QobmEZ65bmkmpzonq5JoLRIIUKXne.jBF3fgrlhaJYs3bDEaHQU22nRpKP0zKeF_oOsqh7WddL8pfxAomPSbeANzdmLP9YPB26HbLeSaEJqhFgzIxvWQ&_iepl=
     """
     
     def __init__(self,
@@ -45,7 +47,14 @@ class QLearning(Agent):
         initialization_method:  Literal["zeros", "random", "small-random", "optimistic"] =  "zeros",
         **kwargs
     ):
-        """# Initialize Q-Learning Agent
+        """# Instantiate SARSA Agent.
+    
+        The SARSA update rule is:
+        
+        Q(S,A) ← Q(S,A) + α[R + γQ(S',A') - Q(S,A)]
+        
+        Where A' is the action actually selected in state S' according to the current ε-greedy 
+        policy.
 
         ## Args:
             * action_space          (Space):    Number of possible actions that the agent can take.
@@ -110,8 +119,8 @@ class QLearning(Agent):
                                 initially appear to be rewarding. Over time, the agent will update 
                                 these values based on the actual rewards received.
         """
-        # Declare logger.
-        self.__logger__:            Logger =        get_child("q-learning")
+        # Initialize logger.
+        self.__logger__:    Logger =    get_child("sarsa")
         
         # Define environment components.
         self._action_space_:        Space =         action_space
@@ -135,8 +144,12 @@ class QLearning(Agent):
                                                         initialization_method = initialization_method
                                                     )
         
+        # Track current state and action for SARSA update.
+        self._current_state_:       int =           None
+        self._current_action_:      int =           None
+        
         # Log for debugging.
-        self.__logger__.debug(f"Initialized Q-Learning agent {locals()}")
+        self.__logger__.debug(f"Initialized SARSA agent {locals()}")
         
     # PROPERTIES ===================================================================================
     
@@ -147,6 +160,22 @@ class QLearning(Agent):
         Controls how much new information overrides old information when updating Q-values.
         """
         return self._learning_rate_
+    
+    @property
+    def current_action(self) -> int:
+        """# Current Action
+        
+        The action currently being executed (needed for SARSA updates).
+        """
+        return self._current_action_
+    
+    @property
+    def current_state(self) -> int:
+        """# Current State
+        
+        The state the agent is currently in (needed for SARSA updates).
+        """
+        return self._current_state_
     
     @property
     def discount_rate(self) -> float:
@@ -328,37 +357,54 @@ class QLearning(Agent):
         
         Update agent's Q-Table based on following rule:
         
-        Q(s, a) ← Q(s, a) + α [R + γ max_a Q(s', a) - Q(s, a)]
+        Q(S,A) ← Q(S,A) + α[R + γQ(S',A') - Q(S,A)]
         
-        Where:
-            * α:                Learning rate (alpha)
-            * γ:                Discount rate (gamma)
-            * a:                Action submitted
-            * s:                State when action was submitted
-            * s':               State after action was taken
-            * R:                Reward/penalty yielded by action taken
-            * Q(s, a):          Current state:action value
-            * max_a Q(s', a):   Maximum value for the next state over all possible actions
+        Where A' is the next action that will actually be taken according to the current policy.
 
         ## Args:
-            * new_state (Any):      State of environment after action was submitted.
-            * reward    (float):    Reward yielded/penalty incurred by action submitted to 
-                                    environment.
-            * done      (bool):     Flag indicating if new state is terminal.
+            * state         (int):      State of the agent before action being taken.
+            * action        (int):      Action chosen by agent.
+            * reward        (float):    Reward yielded by action taken.
+            * next_state    (int):      State of the agent after action is taken. 
+            * done          (bool):     Indicates if agent has reached end state.
         """
+        # Skip update if we don't have a current state-action pair.
+        if self._current_state_ is None or self._current_action_ is None: return
+            
         # Log for debugging.
-        self.__logger__.debug(f"Updating Q-table[state: {self._current_state_}, action: {self._current_action_}, reward: {reward}]")
-        
-        # Define new action-state value in Q-table.
-        self._q_table_[self._current_state_][self._current_action_] += (
-            self._learning_rate_ * (
-                reward + (
-                        (self._discount_rate_ * 0) 
-                        if done 
-                        else self._q_table_.get_best_value(state = new_state)
-                ) - self._q_table_[self._current_state_][self._current_action_]
-            )
+        self.__logger__.debug(
+            f"SARSA update: S={self._current_state_}, A={self._current_action_}, "
+            f"R={reward}, S'={new_state}, done={done}"
         )
+        
+        # If episode is done, there's no next action.
+        if done:
+            
+            # Terminal state update: Q(S,A) ← Q(S,A) + α[R - Q(S,A)]
+            self._q_table_[self._current_state_, self._current_action_] += (
+                self._learning_rate_ * (
+                    reward - self._q_table_[self._current_state_, self._current_action_]
+                )
+            )
+            
+        # Otherwise...
+        else:
+            
+            # Get the next action that will actually be taken (on-policy).
+            next_action = self.act(new_state)
+            
+            # SARSA update: Q(S,A) ← Q(S,A) + α[R + γQ(S',A') - Q(S,A)]
+            self._q_table_[self._current_state_, self._current_action_] += (
+                self._learning_rate_ * (
+                    reward + 
+                    self._discount_rate_ * self._q_table_[new_state, next_action] - 
+                    self._q_table_[self._current_state_, self._current_action_]
+                )
+            )
+            
+            # Update current state-action for next iteration.
+            self._current_state_ = new_state
+            self._current_action_ = next_action
         
         # Decay exploration rate (epsilon).
         if not (self._decay_interval_ == "by-episode" and not done): self.decay_epsilon()
@@ -387,13 +433,13 @@ class QLearning(Agent):
                             "exploration_min":      self._exploration_min_,
                             "bootstrap":            self._bootstrap_
                         },
-            fp =        open(f"{path}/q_learning_config.json", "w"),
+            fp =        open(f"{path}/sarsa_config.json", "w"),
             indent =    2,
             default =   str
         )
         
         # Log save location.
-        self.__logger__.info(f"Q-Learning configuration saved to {path}/q_learning_config.json")
+        self.__logger__.info(f"SARSA configuration saved to {path}/sarsa_config.json")
     
     @override
     def save_model(self,
