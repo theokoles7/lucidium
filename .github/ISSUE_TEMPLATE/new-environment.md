@@ -2,7 +2,7 @@
 name: New Environment
 about: Recommend a new environment implementation.
 title: "[NEW ENVIRONMENT]"
-labels: enhancement
+labels: enhancement, environments
 assignees: theokoles7
 
 ---
