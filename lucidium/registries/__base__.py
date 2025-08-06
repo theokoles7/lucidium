@@ -198,10 +198,10 @@ class Registry():
         from pkgutil    import walk_packages
         from types      import ModuleType
         
-        try:# Import the main package to get its path.
-            package:    ModuleType = import_module(f"lucidium.{self._name_}")
-            
-            # Walk through all modules in the package.
+        # Import the main package to get its path.
+        package:    ModuleType = import_module(f"lucidium.{self._name_}")
+        
+        try:# Walk through all modules in the package.
             for _, module, _ in walk_packages(
                 path =      package.__path__,
                 prefix =    f"lucidium.{self._name_}.",
@@ -210,11 +210,17 @@ class Registry():
                 try:# Attempt import of module.
                     import_module(name = module)
                     
-                # Skip modules that can't be imported.
-                except ImportError: continue
+                # If a module cannot be imported...
+                except ImportError as e:
+                    
+                    # Report error.
+                    print(f"Error importing {module} module: {e}")
                    
-        # Package doesn't exist or can't be imported.
-        except ImportError: pass
+        # If a package cannot be imported...
+        except ImportError as e:
+                    
+            # Report error.
+            print(f"Error importing {package} package: {e}")
         
     # DUNDERS ======================================================================================
     
