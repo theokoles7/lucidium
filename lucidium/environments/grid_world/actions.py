@@ -5,9 +5,9 @@ Defines actions available in Grid World environment.
 
 __all__ = ["GridWorldActions"]
 
-from typing import Dict, Tuple, Union
+from typing             import Dict, Tuple, Union
 
-from spaces import Discrete
+from lucidium.spaces    import Discrete
 
 class GridWorldActions(Discrete):
     """# Grid World Actions

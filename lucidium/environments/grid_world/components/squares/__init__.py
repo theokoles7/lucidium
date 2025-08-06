@@ -16,11 +16,11 @@ __all__ =   [
             ]
 
 # Basic square.
-from environments.grid_world.components.squares.__base__    import Square
+from lucidium.environments.grid_world.components.squares.__base__   import Square
 
 # Special squares.
-from environments.grid_world.components.squares.coin        import Coin
-from environments.grid_world.components.squares.goal        import Goal
-from environments.grid_world.components.squares.loss        import Loss
-from environments.grid_world.components.squares.portal      import Portal
-from environments.grid_world.components.squares.wall        import Wall
+from lucidium.environments.grid_world.components.squares.coin       import Coin
+from lucidium.environments.grid_world.components.squares.goal       import Goal
+from lucidium.environments.grid_world.components.squares.loss       import Loss
+from lucidium.environments.grid_world.components.squares.portal     import Portal
+from lucidium.environments.grid_world.components.squares.wall       import Wall

@@ -9,4 +9,4 @@ __all__ =   [
             ]
 
 # Environment.
-from environments.block_world.__base__  import BlockWorld
+from lucidium.environments.block_world.__base__ import BlockWorld

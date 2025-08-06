@@ -9,4 +9,4 @@ __all__ =   [
             ]
 
 # Environment.
-from environments.grid_world.__base__   import GridWorld
+from lucidium.environments.grid_world.__base__  import GridWorld

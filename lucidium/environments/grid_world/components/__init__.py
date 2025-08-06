@@ -16,7 +16,7 @@ __all__ =   [
 ]
 
 # Grid components.
-from environments.grid_world.components.grid    import Grid
+from lucidium.environments.grid_world.components.grid       import Grid
 
 # Square components.
-from environments.grid_world.components.squares import *
+from lucidium.environments.grid_world.components.squares    import *
