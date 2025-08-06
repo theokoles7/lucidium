@@ -72,7 +72,7 @@ Future research in NSRL should continue to investigate how **minimal inductive b
 
 ## References
 
-1. [Garnelo, M., & Shanahan, M. (2019). *Reconciling deep learning with symbolic artificial intelligence: representing objects and relations.*](../references/Reconciling-Deep-Learning-with-Symbolic-Artificial-Intelligence_Representing-Objects-and-Relations_Garnelo_2019.pdf)
-2. [Lake, B. M., Ullman, T. D., Tenenbaum, J. B., & Gershman, S. J. (2017). *Building Machines That Learn and Think Like People.* Behavioral and Brain Sciences.](../references/Building-Machines-that-Learn-and-Think-Like-People_Lake_2017.pdf)
-3. [Mao, J., Gan, C., Kohli, P., Tenenbaum, J. B., & Wu, J. (2019). *The Neuro-Symbolic Concept Learner: Interpreting Scenes, Words, and Sentences From Natural Supervision.*](../references/The-Neuro-Symbolic-Concept-Learner_Interpreting-Scenes-Words-and-Sentences-from-Natural-Supervision_Mao_2019.pdf)
-4. [Marcus, G. (2001). *The Algebraic Mind: Integrating Connectionism and Cognitive Science.*](../references/The-Algebraic-Mind_Integrating-Connectionism-and-Cognitive-Science_Marcus_2001.pdf)
+1. [Garnelo, M., & Shanahan, M. (2019). *Reconciling deep learning with symbolic artificial intelligence: representing objects and relations.*](../../assets/references/Reconciling-Deep-Learning-with-Symbolic-Artificial-Intelligence_Representing-Objects-and-Relations_Garnelo_2019.pdf)
+2. [Lake, B. M., Ullman, T. D., Tenenbaum, J. B., & Gershman, S. J. (2017). *Building Machines That Learn and Think Like People.* Behavioral and Brain Sciences.](../../assets/references/Building-Machines-that-Learn-and-Think-Like-People_Lake_2017.pdf)
+3. [Mao, J., Gan, C., Kohli, P., Tenenbaum, J. B., & Wu, J. (2019). *The Neuro-Symbolic Concept Learner: Interpreting Scenes, Words, and Sentences From Natural Supervision.*](../../assets/references/The-Neuro-Symbolic-Concept-Learner_Interpreting-Scenes-Words-and-Sentences-from-Natural-Supervision_Mao_2019.pdf)
+4. [Marcus, G. (2001). *The Algebraic Mind: Integrating Connectionism and Cognitive Science.*](../../assets/references/The-Algebraic-Mind_Integrating-Connectionism-and-Cognitive-Science_Marcus_2001.pdf)

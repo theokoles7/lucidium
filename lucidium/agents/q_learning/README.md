@@ -36,4 +36,4 @@ The learning rate or step size determines to what extent newly acquired informat
 
 ## References
 
-1. [Watkins, Christopher JCH, and Peter Dayan. "Q-learning." Machine learning 8 (1992): 279-292.](../../../documentation/references/Q-Learning_Watkins_1992.pdf)
+1. [Watkins, Christopher JCH, and Peter Dayan. "Q-learning." Machine learning 8 (1992): 279-292.](../../../assets/references/Q-Learning_Watkins_1992.pdf)
