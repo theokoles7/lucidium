@@ -301,7 +301,7 @@ class Grid():
             * action_delta  (Tuple[int, int]):  Delta of action submitted by agent.
 
         ## Returns:
-            * Tuple[int, int]:  Agent's new location.
+            * int:              Agent's new location (index).
             * float:            Reward yielded/penalty incurred by agent's action.
             * bool:             True if new location represents a terminal state.
             * Dict[str, Any]:   Description of interaction event.
@@ -331,7 +331,7 @@ class Grid():
         self._agent_:   Tuple[int, int] =   new_state if new_state is not None else self._agent_
         
         # Provide result of agent's action.
-        return self._agent_, value, done, metadata
+        return self._coordinate_to_index_(coordinate = self._agent_), value, done, metadata
     
     def reset(self) -> int:
         """# Reset (Grid).
