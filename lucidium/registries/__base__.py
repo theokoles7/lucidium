@@ -103,14 +103,12 @@ class Registry():
         
     def load(self,
         name:       str,
-        arguments:  Optional[Namespace] =   None,
         **kwargs
     ) -> Any:
         """# Load Registered Class.
 
         ## Args:
             * name      (str):          Registry entry name.
-            * arguments (Namespace):    Arguments to pass to class constructor. Defaults to None.
 
         ## Returns:
             * Any:  Instantiated class.
@@ -122,7 +120,7 @@ class Registry():
         cls:    Type =          entry.cls
         
         # Load class.
-        return cls(**arguments, **kwargs)
+        return cls(**kwargs)
         
     def load_all(self) -> None:
         """# Load all Registered Modules."""
