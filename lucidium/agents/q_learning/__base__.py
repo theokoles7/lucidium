@@ -7,9 +7,8 @@ Link to paper: https://link.springer.com/content/pdf/10.1007/BF00992698.pdf
 __all__ = ["QLearning"]
 
 from logging                                import Logger
-from typing                                 import Literal, override
+from typing                                 import Any, Dict, Literal, override
 
-from numpy                                  import max
 from numpy.random                           import rand
 
 from lucidium.agents.__base__               import Agent
@@ -210,6 +209,31 @@ class QLearning(Agent):
         Controls how much new information overrides old information when updating Q-values.
         """
         return self._learning_rate_
+    
+    @override
+    @property
+    def name(self) -> str:
+        """# (Q-Learning) Name
+
+        Q-Learning agent's proper name.
+        """
+        return "Q-Learning"
+    
+    @override
+    @property
+    def statistics(self) -> Dict[str, Any]:
+        """# (Q-Learning) Statistics
+
+        Statistics pertaining to Q-Learning performance/status.
+        """
+        return  {
+                    "learning_rate":        self._learning_rate_,
+                    "discount_rate":        self._discount_rate_,
+                    "eploration_rate":      self._exploration_rate_,
+                    "exploration_decay":    self._exploration_decay_,
+                    "exploration_min":      self._exploration_min_,
+                    "decay_interval":       self._decay_interval_
+                }
     
     # SETTERS ======================================================================================
     

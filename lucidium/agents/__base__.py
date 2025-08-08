@@ -6,7 +6,7 @@ This module provides the base class for all agents in the Lucidium framework.
 __all__ = ["Agent"]
 
 from abc        import ABC, abstractmethod
-from typing     import Any, List
+from typing     import Any, Dict, List
 
 class Agent(ABC):
     """# Abstract Agent Class
@@ -25,6 +25,28 @@ class Agent(ABC):
         * save_model(path: str)     -> None:    Save the agent's model to the specified path.
         * load_model(path: str)     -> None:    Load the agent's model from the specified path.
     """
+    
+    # PROPERTIES ===================================================================================
+    
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """# (Agent's) Name
+        
+        Proper name of agent.
+        """
+        pass
+    
+    @property
+    @abstractmethod
+    def statistics(self) -> Dict[str, Any]:
+        """# (Agent) Statistics
+
+        Running statistics pertaining to agent's learning/performance.
+        """
+        pass
+    
+    # METHODS ======================================================================================
         
     @abstractmethod
     def act(self,
@@ -85,18 +107,5 @@ class Agent(ABC):
 
         ## Args:
             * path  (str):  Path to which model save file will be saved.
-        """
-        pass
-    
-    @abstractmethod
-    def train_model(self,
-        batch:  List[Any]
-    ) -> None:
-        """# Train Model.
-        
-        Update model using a batch of transitions or experiences.
-
-        ## Args:
-            * batch (List[Any]):    Batch of training samples.
         """
         pass

@@ -126,12 +126,39 @@ class GridWorld(Environment):
     
     @override
     @property
+    def done(self) -> bool:
+        """# (Grid World) is Done?
+
+        True if agent has reached a goal or loss square.
+        """
+        return self._grid_.done
+    
+    @override
+    @property
+    def name(self) -> str:
+        """# (Grid World) Name
+
+        Grid World's proper name.
+        """
+        return "Grid World"
+    
+    @override
+    @property
     def observation_space(self) -> Discrete:
         """# (Grid World) Observation Space
 
         Possible Grid World states.
         """
         return Discrete(n = (self._grid_.rows * self._grid_.columns))
+    
+    @override
+    @property
+    def statistics(self) -> Dict[str, Any]:
+        """# (Grid World) Statistics
+
+        Statistics pertaining to environment interaction.
+        """
+        return self._grid_.progress
     
     # METHODS ======================================================================================
     
@@ -144,7 +171,7 @@ class GridWorld(Environment):
         ## Returns:
             * int:  Agent's initial state.
         """
-        self._grid_.reset()
+        return self._grid_.reset()
         
     @override
     def step(self,
@@ -154,8 +181,8 @@ class GridWorld(Environment):
         
         Apply agent's chosen action to environment.
 
-        Args:
-            action (int): Action submitted by agent.
+        ## Args:
+            * action    (int):  Action submitted by agent.
 
         ## Returns:
             * int:              Agent's new location (index).
@@ -163,6 +190,10 @@ class GridWorld(Environment):
             * bool:             True if new location represents a terminal state.
             * Dict[str, Any]:   Description of interaction event.
         """
+        # If game has already concluded, report error.
+        if self.done: raise RuntimeError(f"Game has concluded. Call reset() to start new game.")
+        
+        # Otherwise, provide results of action.
         return self._grid_.move(action_delta = self._actions_[action]["delta"])
         
     # DUNDERS ======================================================================================

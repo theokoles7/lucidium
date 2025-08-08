@@ -62,7 +62,7 @@ setup(
                                     ],
     entry_points =                  {
                                         "console_scripts":  [
-                                                                "lucidium=lucidium.__main__:main",
+                                                                "lucidium=lucidium.__main__:main"
                                                             ],
                                     },
     classifiers =                   [

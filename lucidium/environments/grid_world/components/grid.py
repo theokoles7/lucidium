@@ -210,6 +210,14 @@ class Grid():
         return self._columns_
     
     @property
+    def done(self) -> bool:
+        """# Game is Done?
+
+        True if agent is currently located on a goal or loss square.
+        """
+        return self._agent_ in self._goal_ or self._agent_ in self._loss_
+    
+    @property
     def goal(self) -> Set[Tuple[int, int]]:
         """# (Grid) Goal(s).
 
@@ -257,6 +265,19 @@ class Grid():
         List of mappings for portal entry and destination coordinate(s).
         """
         return self._portals_
+    
+    @property
+    def progress(self) -> Dict[str, Any]:
+        """# (Game) Progress
+
+        Progress tracking statistics.
+        """
+        return  {
+                    "squares_visited":      len(self._squares_visited_),
+                    "collisions":           self._collisions_,
+                    "coins_collected":      self._coins_collected_,
+                    "portals_activated":    self._portals_activated_
+                }
     
     @property
     def rows(self) -> int:
@@ -318,11 +339,17 @@ class Grid():
             # And map is not wrapped...
             if not self.is_wrapped:
                 
+                # Increment collision count.
+                self._collisions_ += 1
+                
                 # Assign penalty for boundary collision.
-                return  self._agent_, self.collision_penalty, False, {"event": "collided with boundary"}
+                return  self._coordinate_to_index_(coordinate = self._agent_), self.collision_penalty, False, {"event": "collided with boundary"}
             
             # Otherwise, map is wrapped, so we should module new location.
             new_location: Tuple[int, int] = self._modulate_(coordinate = new_location)
+            
+        # Uupdate statistics based on new location.
+        self._update_statistics_(new_location = new_location)
             
         # Interact with square.
         new_state, value, done, metadata =  self._get_square_(coordinate = new_location).interact()
@@ -349,6 +376,12 @@ class Grid():
             
         # Reset agent.
         self._agent_:   Tuple[int, int] =   self._start_
+        
+        # Initialize progress statistics.
+        self._squares_visited_:     Set[Tuple[int, int]] =  set()
+        self._collisions_:          int =                   0
+        self._coins_collected_:     int =                   0
+        self._portals_activated_:   int =                   0
         
         # Provide agent's starting location/state.
         return self._coordinate_to_index_(coordinate = self._agent_)
@@ -458,6 +491,31 @@ class Grid():
                                                                         destination =   portal["exit"],
                                                                         value =         self.step_penalty
                                                                     )
+            
+    def _update_statistics_(self,
+        new_location:   Tuple[int, int]
+    ) -> None:
+        """# Update Statistics.
+        
+        Add new locatino to squares visited and compute progress trackers.
+
+        ## Args:
+            * new_location  (Tuple[int, int]):  Agent's new location.
+        """
+        # If new location has not already been visited...
+        if new_location not in self._squares_visited_:
+            
+            # Add new location.
+            self._squares_visited_.add(new_location)
+            
+            # If new location was a coin square, increment count of collected coins.
+            if new_location in self._coins_:                                    self._coins_collected_ += 1
+            
+        # If new location was a wall, increment collision count.
+        if new_location in self._walls_:                                    self._collisions_ += 1
+        
+        # If new location was a portal entrance, increment portal activation count.
+        if new_location in [portal["entry"] for portal in self._portals_]:  self._portals_activated_ += 1
             
     # DUNDERS ======================================================================================
     

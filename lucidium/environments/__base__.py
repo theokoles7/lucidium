@@ -24,19 +24,45 @@ class Environment(ABC):
     @property
     @abstractmethod
     def action_space(self) -> Any:
-        """# Action Space (Any)
+        """# (Environment) Action Space
         
-        This property should return the actions possible within the environment.
+        Actions possible within environment.
         """
         pass
     
     @property
     @abstractmethod
-    def state_space(self) -> Any:
-        """# State Space (Any)
+    def done(self) -> bool:
+        """# (Environment) is Done?
+
+        True if environment has reached a terminal state.
+        """
+        pass
+    
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """# (Environment's) Name
         
-        This property should return the quantification of possible states in which the environment 
-        can be observed.
+        Proper name of environment.
+        """
+        pass
+    
+    @property
+    @abstractmethod
+    def observation_space(self) -> Any:
+        """# (Environment) Observation Space
+        
+        Observations possible within environment.
+        """
+        pass
+    
+    @property
+    @abstractmethod
+    def statistics(self) -> Dict[str, Any]:
+        """# (Environment) Statistics
+
+        Running statistics pertaining to interactions with the environemnt
         """
         pass
     
@@ -46,7 +72,7 @@ class Environment(ABC):
     def reset(self) -> Any:
         """# Reset Environment.
         
-        This method should reset the environment to its initial state and return the initial state.
+        Reset environment and provide the initial state.
         
         ## Returns:
             * Any:  Initial state of the environment.
@@ -65,13 +91,12 @@ class Environment(ABC):
         state, reward, done flag, and optional metadata.
         
         ## Args:
-            * action    (Any):  Action to be taken in the environment.
+            * action    (Any):  Action submitted by agent.
         
         ## Returns:
-            * Tuple[Any, float, bool, Dict]:
-                - Any:      Next state of the environment
-                - float:    Reward received
-                - bool:     Done flag indicating if the episode has ended
-                - Dict:     Additional information
+            * Any:              New state of the environment.
+            * float:            Reward yielded/penalty incurred by action submitted by agent.
+            * bool:             True if new state of environment is terminal.
+            * Dict[str, Any]:   Metadata/information related to interaction event.
         """
         pass
