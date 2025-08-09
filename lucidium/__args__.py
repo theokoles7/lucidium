@@ -22,16 +22,16 @@ def parse_lucidium_arguments() -> Namespace:
     """
     # Initialize primary parser
     _parser_:       ArgumentParser =    ArgumentParser(
-        prog =          "lucidium",
-        description =   """Suite of environments, models, & methods in pursuit of achieving organic 
-                        reasoning & logic by means of deep reinforcement learning.""",
+        prog =              "lucidium",
+        description =       """Suite of environments, models, & methods in pursuit of achieving 
+                            organic reasoning & logic by means of deep reinforcement learning.""",
         formatter_class =   CommandHelpFormatter
     )
 
     # Initialize sub-parser
     _subparser_:    _SubParsersAction = _parser_.add_subparsers(
-        dest =          "command",
-        help =          "Lucidium commands."
+        dest =              "command",
+        help =              "Lucidium commands."
     )
 
     # +============================================================================================+
@@ -40,24 +40,24 @@ def parse_lucidium_arguments() -> Namespace:
 
     # LOGGING ======================================================================================
     _logging_:      _ArgumentGroup =    _parser_.add_argument_group(
-        title =         "Logging",
-        description =   "Logging configuration."    
+        title =             "Logging",
+        description =       "Logging configuration."    
     )
 
     _logging_.add_argument(
         "--logging-level",
-        type =          str,
-        choices =       ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "NOTSET"],
-        default =       "INFO",
-        help =          """Minimum logging level (DEBUG < INFO < WARNING < ERROR < CRITICAL). 
-                        Defaults to "INFO"."""
+        type =              str,
+        choices =           ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "NOTSET"],
+        default =           "INFO",
+        help =              """Minimum logging level (DEBUG < INFO < WARNING < ERROR < CRITICAL). 
+                            Defaults to "INFO"."""
     )
 
     _logging_.add_argument(
         "--logging-path",
-        type =          str,
-        default =       "logs",
-        help =          """Path at which logs will be written. Defaults to "./logs/"."""
+        type =              str,
+        default =           "logs",
+        help =              """Path at which logs will be written. Defaults to "./logs/"."""
     )
 
     # +============================================================================================+
