@@ -51,7 +51,7 @@ class Coin(Square):
 
         Reward yielded by collecting coin or penalty for revisiting square.
         """
-        return -self._value_ if self.was_collected else self._value
+        return -self._value_ if self.was_collected else self._value_
     
     # METHODS ======================================================================================
     
