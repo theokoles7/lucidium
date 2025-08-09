@@ -135,7 +135,12 @@ class Game():
     
     def _append_event_(self) -> None:
         """# Append Event."""
-        self._logging_panel_.append(msg = self._step_statistics_["metadata"]["event"])
+        self._logging_panel_.append(
+            msg =   (
+                        f"""Agent took action {self._step_statistics_["action"]} """
+                        f"""and {self._step_statistics_["metadata"]["event"]}"""
+                    )
+        )
         
     def _execute_episode(self) -> Dict[str, Any]:
         """# Execute Episode.
