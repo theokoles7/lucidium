@@ -32,6 +32,7 @@ class Game():
         animate:        bool =  False,
         animation_rate: float = 0.1,
         save_results:   bool =  False,
+        save_path:      str =   "output/games",
         **kwargs
     ):
         """# Instantiate Game Process.
@@ -47,6 +48,9 @@ class Game():
             * animation_rate    (float):    Rate at which animation will be refresed in seconds. 
                                             Defaults to 0.1.
             * save_results      (bool):     If true, results will be saved to JSON file.
+            * save_path         (str):      Path at which game results will be saved. NOTE: Only 
+                                            applies if `--save-results` or `--save` flags are 
+                                            passed. Defaults to "./output/games/"
         """
         # Load environment.
         self._environment_:     Environment =   ENVIRONMENT_REGISTRY.load(
@@ -71,10 +75,11 @@ class Game():
         self._animation_rate_:  float =         animation_rate
         
         # If animation is enabled, initialize display.
-        if self._is_animated_: self._initialize_display_()
+        if self._is_animated_:  self._initialize_display_()
         
         # Set flag to save results.
         self._save_results_:    bool =          save_results
+        self._save_path_:       str =           save_path
         
     # METHODS ======================================================================================
     
@@ -105,29 +110,23 @@ class Game():
                 # Update best episode statistics.
                 self._game_statistics_["best_episode"]["reward"] =  self._game_statistics_["episodes"][self._current_episode_]["cumulative_reward"]
                 self._game_statistics_["best_episode"]["episode"] = self._current_episode_
-        
-        print(f"Saving result: {self._save_results_}")
-        
                 
         # Save results if requested.
         if self._save_results_:
             
             # Ensure that directories exist.
-            makedirs(name = "output/games", exist_ok = True)
+            makedirs(name = self._save_path_, exist_ok = True)
             
             # Save results.
             dump(
                 self._game_statistics_,
                 open(
-                    f"output/games/{self._agent_.name}_{self._environment_.name}_{TIMESTAMP}.json",
+                    f"{self._save_path_}/{self._agent_.name}_{self._environment_.name}_{TIMESTAMP}.json",
                     "w", encoding = "utf-8"
                 ),
                 indent =    2,
                 default =   str
             )
-            
-            # Report save location.
-            print(f"Game results saved to output/games/{self._agent_.name}_{self._environment_.name}_{TIMESTAMP}.json")
                 
         # Provide final game statistics.
         return self._game_statistics_

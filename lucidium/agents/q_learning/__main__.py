@@ -22,7 +22,7 @@ def main(
                                         )
     
     try:# Dispatch command.
-        AGENT_COMMAND_REGISTRY.dispatch(command = action, **kwargs)
+        AGENT_COMMAND_REGISTRY.dispatch(command = action, **{k:v for k, v in kwargs.items() if k != "command"})
     
     # Catch wildcard errors.
     except Exception as e:  _logger_.critical(f"Unexpected error caught in Q-Learning main process: {e}", exc_info = True)
