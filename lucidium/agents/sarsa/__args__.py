@@ -5,7 +5,9 @@ Argument definitions and parsing for SARSA agent.
 
 __all__ = ["register_sarsa_parser"]
 
-from argparse   import _ArgumentGroup, ArgumentParser, _SubParsersAction
+from argparse               import _ArgumentGroup, ArgumentParser, _SubParsersAction
+
+from lucidium.registries    import AGENT_COMMAND_REGISTRY
 
 def register_sarsa_parser(
     parent_subparser:   _SubParsersAction
@@ -144,3 +146,6 @@ def register_sarsa_parser(
     # +============================================================================================+
     # | END ARGUMENTS                                                                              |
     # +============================================================================================+
+    
+    # Register commands.
+    AGENT_COMMAND_REGISTRY.register_parsers(subparser = _subparser_)

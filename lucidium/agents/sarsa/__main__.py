@@ -1,8 +1,9 @@
 """# lucidium.agents.sarsa.main"""
 
-from logging                                import Logger
+from logging                import Logger
 
-from lucidium.utilities                     import get_child
+from lucidium.registries    import AGENT_COMMAND_REGISTRY
+from lucidium.utilities     import get_child
 
 def main(
     action: str,
@@ -18,7 +19,7 @@ def main(
                                             logger_name =   "sarsa.main"
                                         )
     
-    try:# Execute action.
-        print("QLearning.main")
+    try:# Dispatch command.
+        AGENT_COMMAND_REGISTRY.dispatch(command = action, **{k:v for k, v in kwargs.items() if k != "command"})
     
-    except Exception as e:  _logger_.critical(f"Unexpected error caught: {e}", exc_info = True)
+    except Exception as e:  _logger_.critical(f"Unexpected error caught in SARSA main process: {e}", exc_info = True)

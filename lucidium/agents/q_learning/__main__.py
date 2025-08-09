@@ -1,11 +1,9 @@
 """# lucidium.agents.q_learning.main"""
 
-from logging                    import Logger
-from typing                     import Callable, Dict
+from logging                import Logger
 
-from lucidium.agents.commands   import *
-from lucidium.registries        import AGENT_COMMAND_REGISTRY
-from lucidium.utilities         import get_child
+from lucidium.registries    import AGENT_COMMAND_REGISTRY
+from lucidium.utilities     import get_child
 
 def main(
     action: str,

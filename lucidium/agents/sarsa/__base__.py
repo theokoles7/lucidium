@@ -6,22 +6,23 @@ Link to paper: https://www.researchgate.net/profile/Mahesan-Niranjan/publication
 """
 
 from logging                            import Logger
-from typing                             import Literal, override
+from typing                             import Any, Dict, Literal, override
 
-from numpy                              import max
 from numpy.random                       import rand
 
 from lucidium.agents.__base__           import Agent
 from lucidium.agents.components         import QTable
 from lucidium.agents.sarsa.__args__     import register_sarsa_parser
+from lucidium.agents.sarsa.__main__     import main
 from lucidium.registries                import register_agent
 from lucidium.spaces                    import Space
 from lucidium.utilities                 import get_child
 
 @register_agent(
-    name =      "sarsa",
-    tags =      ["on-policy", "tabular-based", "value-based", "temporal-difference"],
-    parser =    register_sarsa_parser
+    name =          "sarsa",
+    tags =          ["on-policy", "tabular-based", "value-based", "temporal-difference"],
+    entry_point =   main,
+    parser =        register_sarsa_parser
 )
 class SARSA(Agent):
     """# SARSA Agent
@@ -240,6 +241,31 @@ class SARSA(Agent):
         """
         return self._learning_rate_
     
+    @override
+    @property
+    def name(self) -> str:
+        """# (SARSA) Name
+
+        SARSA agent' proper name.
+        """
+        return "SARSA"
+    
+    @override
+    @property
+    def statistics(self) -> Dict[str, Any]:
+        """# (SARSA) Statistics
+
+        Statistics pertaining to SARSA performance/status.
+        """
+        return  {
+                    "learning_rate":        self._learning_rate_,
+                    "discount_rate":        self._discount_rate_,
+                    "eploration_rate":      self._exploration_rate_,
+                    "exploration_decay":    self._exploration_decay_,
+                    "exploration_min":      self._exploration_min_,
+                    "decay_interval":       self._decay_interval_
+                }
+    
     # SETTERS ======================================================================================
     
     @epsilon.setter
@@ -381,9 +407,9 @@ class SARSA(Agent):
         if done:
             
             # Terminal state update: Q(S,A) ← Q(S,A) + α[R - Q(S,A)]
-            self._q_table_[self._current_state_, self._current_action_] += (
+            self._q_table_[self._current_state_][self._current_action_] += (
                 self._learning_rate_ * (
-                    reward - self._q_table_[self._current_state_, self._current_action_]
+                    reward - self._q_table_[self._current_state_][self._current_action_]
                 )
             )
             
@@ -394,11 +420,11 @@ class SARSA(Agent):
             next_action = self.act(new_state)
             
             # SARSA update: Q(S,A) ← Q(S,A) + α[R + γQ(S',A') - Q(S,A)]
-            self._q_table_[self._current_state_, self._current_action_] += (
+            self._q_table_[self._current_state_][self._current_action_] += (
                 self._learning_rate_ * (
                     reward + 
-                    self._discount_rate_ * self._q_table_[new_state, next_action] - 
-                    self._q_table_[self._current_state_, self._current_action_]
+                    self._discount_rate_ * self._q_table_[new_state][next_action] - 
+                    self._q_table_[self._current_state_][self._current_action_]
                 )
             )
             
