@@ -1,4 +1,4 @@
-[lucidium](../../README.md) / [documentation](../README.md) / [concepts](./README.md) / nativism-vs-empericism
+[lucidium](https://github.com/theokoles7/lucidium) / [documentation](https://github.com/theokoles7/lucidium/blob/main/documentation/README.md) / [concepts](./README.md) / nativism-vs-empericism
 
 # Nativism vs. Empiricism in Neuro-Symbolic Reinforcement Learning
 

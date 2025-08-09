@@ -1,3 +1,5 @@
+[lucidium](https://github.com/theokoles7/lucidium) / [documentation](https://github.com/theokoles7/lucidium/blob/main/documentation/README.md) / [environments](../README.md) / block-world
+
 # BlockWorld Environment
 
 BlockWorld is a classic AI planning domain where blocks can be stacked on top of each other or placed on a table. The goal is to rearrange blocks from an initial configuration to achieve a target configuration.

@@ -1,4 +1,4 @@
-[lucidium](../../README.md) / [documentation](../../documentation/README.md) / [environments](../README.md) / tic-tac-toe
+[lucidium](https://github.com/theokoles7/lucidium) / [documentation](https://github.com/theokoles7/lucidium/blob/main/documentation/README.md) / [environments](../README.md) / tic-tac-toe
 
 # Tic-Tac-Toe
 

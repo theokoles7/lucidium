@@ -1,4 +1,4 @@
-[lucidium](../README.md) / documentation
+[lucidium](https://github.com/theokoles7/lucidium) / documentation
 
 # Lucidium Documentation
 

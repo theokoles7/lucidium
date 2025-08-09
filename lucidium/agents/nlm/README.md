@@ -1,4 +1,4 @@
-[lucidium](../../README.md) / [documentation](../../documentation/README.md) / [agents](../README.md) / neural-logic-machine
+[lucidium](https://github.com/theokoles7/lucidium) / [documentation](https://github.com/theokoles7/lucidium/blob/main/documentation/README.md) / [agents](../README.md) / neural-logic-machine
 
 # Neural Logic Machine
 
