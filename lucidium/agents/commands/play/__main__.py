@@ -5,17 +5,18 @@ Agent's game-play process.
 
 __all__ = ["Game"]
 
-from dashing                import HSplit, Log, Text, VSplit
-from json                   import dump, dumps
-from math                   import inf
-from os                     import makedirs
-from time                   import sleep
-from typing                 import Any, Dict
+from dashing                                import HSplit, Log, Text, VSplit
+from json                                   import dump, dumps
+from math                                   import inf
+from os                                     import makedirs
+from time                                   import sleep
+from typing                                 import Any, Dict
 
-from lucidium.agents        import Agent
-from lucidium.environments  import Environment
-from lucidium.registries    import AGENT_REGISTRY, ENVIRONMENT_REGISTRY
-from lucidium.utilities     import TIMESTAMP
+from lucidium.agents                        import Agent
+from lucidium.agents.commands.play.__args__ import register_play_parser
+from lucidium.environments                  import Environment
+from lucidium.registries                    import AGENT_REGISTRY, ENVIRONMENT_REGISTRY, register_agent_command
+from lucidium.utilities                     import TIMESTAMP
 
 class Game():
     """# Game (Process)
@@ -306,6 +307,10 @@ class Game():
         
         
 # Define main process driver.
+@register_agent_command(
+    name =      "play",
+    parser =    register_play_parser
+)
 def main(**kwargs) -> Dict[str, Any]:
     """# Execute Game.
 

@@ -1,24 +1,27 @@
-"""# lucidium.registries.entry
+"""# lucidium.registries.class_entry
 
 Defines the structure and utility of a registration entry.
 """
 
+__all__ = ["ClassEntry"]
+
 from argparse   import _SubParsersAction
 from typing     import Callable, List, Optional, Type
 
-class RegistryEntry():
+class ClassEntry():
     """# Registry Entry
     
-    Storage of registration entry data.
+    Storage of class registration entry data.
     """
     
     def __init__(self,
-        cls:    Type,
-        name:   str,
-        tags:   Optional[List[str]] =   [],
-        parser: Optional[Callable] =    None
+        cls:            Type,
+        name:           str,
+        tags:           Optional[List[str]] =   [],
+        entry_point:    Optional[Callable] =    None,
+        parser:         Optional[Callable] =    None
     ):
-        """# Instantiate Registration Entry
+        """# Instantiate Class Registration Entry.
 
         ## Args:
             * cls       (Type):                 Class being registered.
@@ -27,10 +30,11 @@ class RegistryEntry():
             * parser    (Optional[Callable]):   Argument parser handler.
         """
         # Define properties.
-        self._cls_:     Type =      cls
-        self._name_:    str =       name
-        self._tags_:    List[str] = tags
-        self._parser_:  Callable =  parser
+        self._cls_:         Type =      cls
+        self._name_:        str =       name
+        self._tags_:        List[str] = tags
+        self._entry_point_: Callable =  entry_point
+        self._parser_:      Callable =  parser
         
     # PROPERTIES ===================================================================================
     
@@ -38,6 +42,11 @@ class RegistryEntry():
     def cls(self) -> Type:
         """# Registered Class"""
         return self._cls_
+    
+    @property
+    def entry_point(self) -> Callable:
+        """# Classe's Entry Point."""
+        return self._entry_point_
     
     @property
     def name(self) -> str:
