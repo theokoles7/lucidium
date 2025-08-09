@@ -5,8 +5,11 @@ Defines the structure and utility of a registration entry.
 
 __all__ = ["ClassEntry"]
 
-from argparse   import _SubParsersAction
-from typing     import Callable, List, Optional, Type
+from argparse           import _SubParsersAction
+from logging            import Logger
+from typing             import Callable, List, Optional, Type
+
+from lucidium.utilities import get_child
 
 class ClassEntry():
     """# Registry Entry
@@ -29,12 +32,18 @@ class ClassEntry():
             * tags      (Optional[List[str]]):  Tags that describe the taxonomy of the class being registered.
             * parser    (Optional[Callable]):   Argument parser handler.
         """
+        # Initialize logger.
+        self.__logger__:    Logger =    get_child(f"{name}-registration-entry")
+        
         # Define properties.
         self._cls_:         Type =      cls
         self._name_:        str =       name
         self._tags_:        List[str] = tags
         self._entry_point_: Callable =  entry_point
         self._parser_:      Callable =  parser
+        
+        # Log initialization for debugging.
+        self.__logger__.debug(f"Registered {name} entry ({locals()})")
         
     # PROPERTIES ===================================================================================
     
@@ -76,6 +85,10 @@ class ClassEntry():
         ## Returns:
             * bool: True if entry contains tag.
         """
+        # Log action for debugging.
+        self.__logger__.debug(f"""{self._name_}-entry contains tag "{tag}": {tag in self._tags_}""")
+        
+        # Indicate that entry contains tag.
         return tag in self._tags_
     
     def register_parser(self,
@@ -86,6 +99,10 @@ class ClassEntry():
         ## Args:
             * sub_parser    (_SubParsersAction):    Parent's sub parser.
         """
+        # Log action for debugging.
+        self.__logger__.debug(f"Registering {self._name_} parser under {subparser.dest}")
+        
+        # Register parser.
         self._parser_(subparser)
         
     # DUNDERS ======================================================================================

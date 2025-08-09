@@ -6,9 +6,11 @@ Defines the class registry system.
 __all__ = ["ClassRegistry"]
 
 from argparse                           import _SubParsersAction
+from logging                            import Logger
 from typing                             import Any, Callable, Dict, List, Optional, Type
 
 from lucidium.registries.class_entry    import ClassEntry
+from lucidium.utilities                 import get_child
 
 class ClassRegistry():
     """# Class Registry
@@ -25,14 +27,17 @@ class ClassRegistry():
             * name  (str):  Name of the sub-module that the registry represents (e.g., "agents", 
                             "environments")
         """
+        # Initialize logger.
+        self.__logger__:    Logger =                get_child(f"{name}-registry")
+        
         # Define sub-module name.
-        self._name_:    str =                   name
+        self._name_:        str =                   name
         
         # Initialize entry map.
-        self._entries_: Dict[str, ClassEntry] = {}
+        self._entries_:     Dict[str, ClassEntry] = {}
         
         # Initialize loaded flag.
-        self._loaded_:  bool =                  False
+        self._loaded_:      bool =                  False
         
     # PROPERTIES ===================================================================================
     
@@ -66,6 +71,10 @@ class ClassRegistry():
         ## Returns:
             * Any:  Data returned from command.
         """
+        # Log action for debugging.
+        self.__logger__.debug(f"Dispatching to {cls} with arguments: {kwargs}")
+        
+        # Dispatch to classe's entry point.
         return self._entries_[cls].entry_point(*args, **kwargs)
     
     def get_entry(self,
@@ -84,6 +93,9 @@ class ClassRegistry():
         """
         # Ensure that registry is loaded.
         self._ensure_loaded_()
+        
+        # Log action for debugging.
+        self.__logger__.debug(f"Getting entry: {key}")
         
         # Assert that entry exists.
         if key not in self._entries_: raise KeyError(f"{key} is not registered.")
@@ -104,6 +116,9 @@ class ClassRegistry():
         """
         # Ensure that registry is loaded.
         self._ensure_loaded_()
+        
+        # Log action for debugging.
+        self.__logger__.debug(f"Listing {self._name_} entries filtered by tags: {filter_by}")
         
         # If no filters are provided, simply return all entries.
         if not filter_by: return list(self._entries_.keys())
@@ -136,6 +151,9 @@ class ClassRegistry():
         # Extract class.
         cls:    Type =          entry.cls
         
+        # Log action for debugging.
+        self.__logger__.debug(f"Loading {name} with arguments: {kwargs}")
+        
         # Load class.
         return cls(**kwargs)
         
@@ -146,6 +164,9 @@ class ClassRegistry():
         
         # Otherwise, import all modules...
         self._import_all_modules_()
+        
+        # Log action for debugging.
+        self.__logger__.debug(f"{self._name_} registry is loaded")
         
         # Record that registry has now been loaded.
         self._loaded_:  bool =  True
@@ -171,6 +192,9 @@ class ClassRegistry():
         """
         # Assert that entry does not already exist.
         if name in self._entries_: raise ValueError(f"{name} if already registered.")
+        
+        # Log action for debugging.
+        self.__logger__.debug(f"Registering entry: cls = {cls}, name = {name}, tags = {tags}, entry_point = {entry_point}, parser = {parser}")
         
         # Register entry.
         self._entries_[name] =  ClassEntry(
@@ -198,6 +222,9 @@ class ClassRegistry():
             # If entry contains argument parser...
             if entry.parser:
                 
+                # Log action for debugging.
+                self.__logger__.debug(f"Registering parser for {entry.name}")
+                
                 # Register parser.
                 entry.register_parser(subparser = parent_subparser)
         
@@ -219,6 +246,9 @@ class ClassRegistry():
         # Import the main package to get its path.
         package:    ModuleType = import_module(f"lucidium.{self._name_}")
         
+        # Log for debugging.
+        self.__logger__.debug(f"Walking {package}")
+        
         try:# Walk through all modules in the package.
             for _, module, _ in walk_packages(
                 path =      package.__path__,
@@ -227,6 +257,9 @@ class ClassRegistry():
             ):
                 try:# Attempt import of module.
                     import_module(name = module)
+                    
+                    # Log for debugging.
+                    self.__logger__.debug(f"Walked {module}")
                     
                 # If a module cannot be imported...
                 except ImportError as e:

@@ -11,7 +11,7 @@ from os                     import makedirs
 from sys                    import stdout
 
 # Declare logger object.
-LOGGER:         Logger
+LOGGER: Logger = getLogger(name = "lucidium")
 
 def get_logger(
     logger_name:    str,
@@ -37,11 +37,6 @@ def get_logger(
     
     # Declare globals.
     global LOGGER
-
-    # Initialize logger
-    LOGGER =                                getLogger(
-                                                name =          logger_name
-                                            )
 
     # Set logging level
     LOGGER.setLevel(level = logging_level)

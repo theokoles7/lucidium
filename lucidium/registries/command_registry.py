@@ -6,9 +6,11 @@ Defines the command registry system.
 __all__ = ["CommandRegistry"]
 
 from argparse                           import _SubParsersAction
+from logging                            import Logger
 from typing                             import Any, Callable, Dict
 
 from lucidium.registries.command_entry  import CommandEntry
+from lucidium.utilities                 import get_child
 
 class CommandRegistry():
     """# Command Registry
@@ -24,11 +26,14 @@ class CommandRegistry():
         ## Args:
             * name  (str):  Name of the class that the registry stores commands for.
         """
+        # Initialize logger.
+        self.__logger__:    Logger =                    get_child(f"{name}-command-registry")
+        
         # Define name.
-        self._name_:    str =   name
+        self._name_:        str =                       name
         
         # Initialize entry map.
-        self._entries_: Dict[str, CommandEntry] =   {}
+        self._entries_:     Dict[str, CommandEntry] =   {}
         
     # PROPERTIES ===================================================================================
     
@@ -56,6 +61,9 @@ class CommandRegistry():
         ## Returns:
             * Any:  Data returned from command.
         """
+        # Log action for debugging.
+        self.__logger__.debug(f"Dispatching to {command} with arguments: {kwargs}")
+        
         return self._entries_[command].entry_point(**kwargs)
     
     def register(self,
@@ -72,6 +80,9 @@ class CommandRegistry():
         """
         # Assert that entry does not already exist.
         if name in self._entries_: raise ValueError(f"{name} is already registered.")
+        
+        # Log action for debugging.
+        self.__logger__.debug(f"Registering entry: command = {name}, entry_point = {entry_point}, parser = {parser}")
         
         # Register entry.
         self._entries_[name] =  CommandEntry(
@@ -90,6 +101,9 @@ class CommandRegistry():
         """
         # For each registered command...
         for command in self._entries_.values():
+            
+            # Log action for debugging.
+            self.__logger__.debug(f"Registering parser for {command.name}")
             
             # Register its parser.
             command.register_parser(subparser = subparser)

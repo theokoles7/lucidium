@@ -5,8 +5,11 @@ Defines the structure and utility of a command registry entry.
 
 __all__ = ["CommandEntry"]
 
-from argparse   import _SubParsersAction
-from typing     import Callable
+from argparse           import _SubParsersAction
+from logging            import Logger
+from typing             import Callable
+
+from lucidium.utilities import get_child
 
 class CommandEntry():
     """# Command Entry
@@ -26,10 +29,16 @@ class CommandEntry():
             * entry_point   (Callable): Command's main process entry point.
             * parser        (Callable): Command argument parser registeration handler.
         """
+        # Initialize logger.
+        self.__logger__:    Logger =    get_child(f"{name}-command-registration-entry")
+        
         # Define properties.
         self._name_:        str =       name
         self._entry_point_: Callable =  entry_point
         self._parser_:      Callable =  parser
+        
+        # Log initialization for debugging.
+        self.__logger__.debug(f"Registered {name} command entry ({locals()})")
         
     # PROPERTIES ===================================================================================
     
@@ -64,6 +73,10 @@ class CommandEntry():
         ## Args:
             * sub_parser    (_SubParsersAction):    Parent's sub parser.
         """
+        # Log action for debugging.
+        self.__logger__.debug(f"Registering {self._name_} command parser under {subparser.dest}")
+        
+        # Register parser.
         self._parser_(subparser)
         
     # DUNDERS ======================================================================================
