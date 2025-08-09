@@ -20,7 +20,7 @@ class Space(ABC):
     def contains(self,
         value:  Any
     ) -> bool:
-        """(Space) Contains?
+        """# (Space) Contains?
         
         ## Args:
             * value (Any):  Value being verified.
