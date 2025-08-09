@@ -14,14 +14,16 @@ from numpy.random                           import rand
 from lucidium.agents.__base__               import Agent
 from lucidium.agents.components             import QTable
 from lucidium.agents.q_learning.__args__    import register_q_learning_parser
+from lucidium.agents.q_learning.__main__    import main
 from lucidium.registries                    import register_agent
 from lucidium.spaces                        import Space
 from lucidium.utilities                     import get_child
 
 @register_agent(
-    name =      "q-learning",
-    tags =      ["off-policy", "tabular-based", "value-based"],
-    parser =    register_q_learning_parser
+    name =          "q-learning",
+    tags =          ["off-policy", "tabular-based", "value-based"],
+    entry_point =   main,
+    parser =        register_q_learning_parser
 )
 class QLearning(Agent):
     """# Q-Learning Agent.

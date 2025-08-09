@@ -3,11 +3,12 @@
 Lucidium application driver.
 """
 
-from argparse           import Namespace
-from logging            import Logger
+from argparse               import Namespace
+from logging                import Logger
 
-from lucidium.__args__  import parse_lucidium_arguments
-from lucidium.utilities import *
+from lucidium.__args__      import parse_lucidium_arguments
+from lucidium.registries    import AGENT_REGISTRY, ENVIRONMENT_REGISTRY
+from lucidium.utilities     import *
 
 def main(*args, **kwargs) -> None:
     """# Execute Application."""
@@ -23,6 +24,9 @@ def main(*args, **kwargs) -> None:
     
     try:# Log banner.
         _logger_.info(BANNER)
+        
+        # Dispatch agent commands.
+        if _arguments_.command in AGENT_REGISTRY: AGENT_REGISTRY.dispatch(cls = _arguments_.command, *args, **kwargs)
     
     # Catch wildcard errors.
     except Exception as e:  _logger_.critical(f"Unexpected error: {e}", exc_info = True)

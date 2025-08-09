@@ -1,66 +1,83 @@
-"""# lucidium.registries.base
+"""# lucidium.registries.class_registry
 
-Defines the abstract registry system.
+Defines the class registry system.
 """
 
-from argparse   import Namespace, _SubParsersAction
-from typing     import Any, Callable, Dict, List, Optional, Type
+__all__ = ["ClassRegistry"]
 
-from .entry     import RegistryEntry
+from argparse                           import _SubParsersAction
+from typing                             import Any, Callable, Dict, List, Optional, Type
 
-class Registry():
-    """# Registry
+from lucidium.registries.class_entry    import ClassEntry
+
+class ClassRegistry():
+    """# Class Registry
     
-    Abstract registry system with lazy loading.
+    Class registry system with lazy loading.
     """
     
     def __init__(self,
         name:   str
     ):
-        """# Instantiate Registry
+        """# Instantiate Class Registry.
         
         ## Args:
             * name  (str):  Name of the sub-module that the registry represents (e.g., "agents", 
                             "environments")
         """
         # Define sub-module name.
-        self._name_:    str =                       name
+        self._name_:    str =                   name
         
         # Initialize entry map.
-        self._entries_: Dict[str, RegistryEntry] =  {}
+        self._entries_: Dict[str, ClassEntry] = {}
         
         # Initialize loaded flag.
-        self._loaded_:  bool =                      False
+        self._loaded_:  bool =                  False
         
     # PROPERTIES ===================================================================================
     
     @property
-    def entries(self) -> Optional[Dict[str, RegistryEntry]]:
-        """# Registry Entries"""
+    def entries(self) -> Dict[str, ClassEntry]:
+        """# Class Registry Entries"""
         return {name: entry.cls for name, entry in self._entries_.items()}.copy()
     
     @property
     def is_loaded(self) -> bool:
-        """# Registry is Loaded?"""
+        """# Class Registry is Loaded?"""
         return self._loaded_
     
     @property
     def name(self) -> str:
-        """# Registry Name."""
+        """# Class Registry Name."""
         return self._name_
         
     # METHODS ======================================================================================
     
+    def dispatch(self,
+        cls:    str,
+        *args,
+        **kwargs
+    ) -> Any:
+        """# Dispatch Command.
+
+        ## Args:
+            * cls   (str):  Class whose main process arguments are being dispatched to.
+
+        ## Returns:
+            * Any:  Data returned from command.
+        """
+        return self._entries_[cls].entry_point(*args, **kwargs)
+    
     def get_entry(self,
         key:    str
-    ) -> RegistryEntry:
-        """# Get Registry Entry.
+    ) -> ClassEntry:
+        """# Get Class Registry Entry.
 
         ## Args:
             * key   (str):  Key of entry being fetched.
 
         ## Returns:
-            * RegistryEntry:    Registry entry requested.
+            * ClassEntry:    Class Registry entry requested.
         
         ## Raises:
             * KeyError: If registry entry does not exist.
@@ -108,13 +125,13 @@ class Registry():
         """# Load Registered Class.
 
         ## Args:
-            * name      (str):          Registry entry name.
+            * name  (str):  Class Registry entry name.
 
         ## Returns:
             * Any:  Instantiated class.
         """
         # Fetch entry according to name.
-        entry:  RegistryEntry = self.get_entry(key = name)
+        entry:  ClassEntry =    self.get_entry(key = name)
         
         # Extract class.
         cls:    Type =          entry.cls
@@ -134,18 +151,20 @@ class Registry():
         self._loaded_:  bool =  True
     
     def register(self,
-        cls:    Type,
-        name:   str,
-        tags:   Optional[List[str]] =   [],
-        parser: Optional[Callable] =    None
+        cls:            Type,
+        name:           str,
+        tags:           Optional[List[str]] =   [],
+        entry_point:    Optional[Callable] =    None,
+        parser:         Optional[Callable] =    None
     ) -> None:
         """# Register (Type).
 
         ## Args:
-            * cls       (Type):                 Class being registered.
-            * name      (str):                  Name of entry.
-            * tags      (Optional[List[str]]):  Tags that describe the taxonomy of the class being registered.
-            * parser    (Optional[Callable]):   Argument parser handler.
+            * cls           (Type):                 Class being registered.
+            * name          (str):                  Name of entry.
+            * tags          (Optional[List[str]]):  Tags that describe the taxonomy of the class being registered.
+            * entry_point   (Optional[Callable]):   Classe's main process entry point.
+            * parser        (Optional[Callable]):   Argument parser handler.
                                                         
         ## Raises:
             * ValueError:   If entry already exists.
@@ -154,11 +173,12 @@ class Registry():
         if name in self._entries_: raise ValueError(f"{name} if already registered.")
         
         # Register entry.
-        self._entries_[name] =  RegistryEntry(
-                                    cls =       cls,
-                                    name =      name,
-                                    tags =      tags,
-                                    parser =    parser
+        self._entries_[name] =  ClassEntry(
+                                    cls =           cls,
+                                    name =          name,
+                                    tags =          tags,
+                                    entry_point =   entry_point,
+                                    parser =        parser
                                 )
         
     def register_parsers(self,
@@ -184,7 +204,7 @@ class Registry():
     # HELPERS ======================================================================================
     
     def _ensure_loaded_(self) -> None:
-        """# Ensure Registry is Loaded."""
+        """# Ensure Class Registry is Loaded."""
         if not self.is_loaded: self.load_all()
         
     def _import_all_modules_(self) -> None:
@@ -225,7 +245,7 @@ class Registry():
     def __contains__(self,
         key:    str
     ) -> bool:
-        """# Registry Contains Key?
+        """# ClassRegistry Contains Key?
         
         True if key is registered.
         """
@@ -233,14 +253,14 @@ class Registry():
     
     def __getitem__(self,
         key:    str
-    ) -> RegistryEntry:
-        """# Get Registry Entry.
+    ) -> ClassEntry:
+        """# Get Class Registry Entry.
 
         ## Args:
             * key   (str):  Key of entry being fetched.
 
         ## Returns:
-            * RegistryEntry:    Registry entry requested.
+            * ClassEntry:    Class Registry entry requested.
         
         ## Raises:
             * KeyError: If registry entry does not exist.
@@ -254,3 +274,7 @@ class Registry():
     def __len__(self) -> int:
         """# Number of Registrations."""
         return len(self._entries_)
+    
+    def __repr__(self) -> str:
+        """# Class Registry Object Representation"""
+        return f"""<ClassRegistry({len(self._entries_)} entries)>"""
