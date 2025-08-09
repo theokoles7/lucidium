@@ -24,7 +24,13 @@ def register_grid_world_parser(
         description =   """Grid World is a simple, discrete, grid-based environment where an agent 
                         navigates the grid to achieve a goal. The environment consists of a grid 
                         with rows and columns, where each grid cell can have different attributes, 
-                        such as obstacles, rewards, or special features."""
+                        such as obstacles, rewards, or special features.""",
+        epilog =        """Complex environment example: grid-world --rows 10 --columns 10 --loss 
+                        "{(2, 7), (7, 2)}" --coins "{(1, 4), (1, 5), (4, 1), (4, 4), (4, 5), (4, 8), 
+                        (5, 1), (5, 4), (5, 5), (5, 8), (8, 4), (8, 5)}" --walls "{(1, 1), (1, 2), 
+                        (1, 7), (1, 8), (2, 1), (2, 8), (3, 3), (3, 4), (3, 5), (3, 6), (4, 6), 
+                        (5, 3), (6, 3), (6, 4), (6, 5), (6, 6), (7, 1), (7, 8), (8, 1), (8, 2), 
+                        (8, 7), (8, 8)}" --portals '[{"entry": (2, 2), "exit": (7, 7)}]'"""
     )
 
     # +============================================================================================+
