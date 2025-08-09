@@ -146,8 +146,8 @@ class SARSA(Agent):
                                                     )
         
         # Track current state and action for SARSA update.
-        self._current_state_:       int =           None
-        self._current_action_:      int =           None
+        self._next_state_:          int =           None
+        self._next_action_:         int =           None
         
         # Log for debugging.
         self.__logger__.debug(f"Initialized SARSA agent {locals()}")
@@ -326,22 +326,14 @@ class SARSA(Agent):
         ## Returns:
             * int:  Index of action chosen.
         """
-        # Cache current state.
-        self._current_state_:   int =   state
-        
-        # If exploration rate (epsilon) is higher than a randomly chosen value...
-        if rand() < self._exploration_rate_:
+        # If agent is beginning a new episode...
+        if getattr(self, "_current_state_", None) is None:
             
-            # Explore.
-            self._current_action_:  int =   self._action_space_.sample()
-        
-        # Otherwise...
-        else:
+            # Define initial state and action.
+            self._current_action_:  int =   self._choose_action_(state = state)
+            self._current_state_:   int =   state
             
-            # Choose max-value action from Q-table based on current state.
-            self._current_action_:  int =   self._q_table_.get_best_action(state = state)
-            
-        # Submit chosen action.
+        # Provide chosen action.
         return self._current_action_
     
     def decay_epsilon(self) -> None:
@@ -396,41 +388,45 @@ class SARSA(Agent):
         """
         # Skip update if we don't have a current state-action pair.
         if self._current_state_ is None or self._current_action_ is None: return
+
+        # Extract current action & state.
+        S, A =  self._current_state_, self._current_action_
             
         # Log for debugging.
         self.__logger__.debug(
             f"SARSA update: S={self._current_state_}, A={self._current_action_}, "
-            f"R={reward}, S'={new_state}, done={done}"
+            f"R={reward}, S'={new_state}, A'={self._next_action_}, done={done}"
         )
         
-        # If episode is done, there's no next action.
+        # If episode is done, there's no next action, simply calculate reward target.
+        if done: temporal_difference_target: float = reward
+        
+        # Otherwise...
+        else:
+            
+            # Choose next action and calculate reward target for next action.
+            self._next_action_:         int =   self._choose_action_(state = new_state)
+            temporal_difference_target: float = reward + self._discount_rate_ * self._q_table_[new_state][self._next_action_]
+            
+        # Calculate error.
+        temporal_difference_error:      float = temporal_difference_target - self._q_table_[self._current_state_][self._current_action_]
+        
+        # Update Q-Table.
+        self._q_table_[self._current_state_][self._current_action_] += self._learning_rate_ * temporal_difference_error
+        
+        # If episode concluded...
         if done:
             
-            # Terminal state update: Q(S,A) ← Q(S,A) + α[R - Q(S,A)]
-            self._q_table_[self._current_state_][self._current_action_] += (
-                self._learning_rate_ * (
-                    reward - self._q_table_[self._current_state_][self._current_action_]
-                )
-            )
+            # Reset current action & state.
+            self._current_action_:  int =   None
+            self._current_state_:   int =   None
             
         # Otherwise...
         else:
             
-            # Get the next action that will actually be taken (on-policy).
-            next_action = self.act(new_state)
-            
-            # SARSA update: Q(S,A) ← Q(S,A) + α[R + γQ(S',A') - Q(S,A)]
-            self._q_table_[self._current_state_][self._current_action_] += (
-                self._learning_rate_ * (
-                    reward + 
-                    self._discount_rate_ * self._q_table_[new_state][next_action] - 
-                    self._q_table_[self._current_state_][self._current_action_]
-                )
-            )
-            
-            # Update current state-action for next iteration.
-            self._current_state_ = new_state
-            self._current_action_ = next_action
+            # Shift buffer.
+            self._current_action_:  int =   self._next_action_
+            self._current_state_:   int =   new_state
         
         # Decay exploration rate (epsilon).
         if not (self._decay_interval_ == "by-episode" and not done): self.decay_epsilon()
@@ -483,3 +479,24 @@ class SARSA(Agent):
         
         # Save Q-table to file.
         self._q_table_.save(path = path)
+        
+    # HELPERS ======================================================================================
+    
+    def _choose_action_(self,
+        state:  int
+    ) -> int:
+        """# Choose Action.
+        
+        Choose action based on state provided, using an epsilon-greedy policy.
+
+        ## Args:
+            * state (int):  State for which an action needs to be chosen.
+
+        ## Returns:
+            * int:  Chosen action.
+        """
+        return  (
+                    self._action_space_.sample()        \
+                    if rand() < self._exploration_rate_ \
+                    else self._q_table_.get_best_action(state = state)
+                )
