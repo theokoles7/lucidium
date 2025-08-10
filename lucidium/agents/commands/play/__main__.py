@@ -208,17 +208,19 @@ class Game():
         # Submit agent's action to environment.
         new_state, reward, done, metadata = self._environment_.step(action = action)
         
-        # Prompt agent to observe the result of its action.
-        self._agent_.observe(new_state = new_state, reward = reward, done = done)
-        
-        # Define step statistics.
+        # Define step statistics and prompt agent observation.
         self._step_statistics_: Dict[str, Any] =    {
-                                                        "old_state":    self._current_state_,
-                                                        "action":       action,
-                                                        "new_state":    new_state,
-                                                        "reward":       reward,
-                                                        "done":         done,
-                                                        "metadata":     metadata
+                                                        "old_state":            self._current_state_,
+                                                        "action":               action,
+                                                        "new_state":            new_state,
+                                                        "reward":               reward,
+                                                        "done":                 done,
+                                                        "agent_observation":    self._agent_.observe(
+                                                                                    new_state = new_state,
+                                                                                    reward =    reward,
+                                                                                    done =      done
+                                                                                ),
+                                                        "metadata":             metadata,
                                                     }
         
         # Update current state.
@@ -235,7 +237,7 @@ class Game():
                 # Instantiate UI layout.
         self._ui_:  VSplit =    VSplit(HSplit(
                                     # Environment state panel.
-                                    Text("",            title = "State",        border_color = 7, color = 7),
+                                    Text("",            title = "State",                    border_color = 7, color = 7),
                                     
                                     # Statistics panel.
                                     VSplit(
@@ -244,27 +246,27 @@ class Game():
                                         HSplit(
                                             
                                             # Episode statistics.
-                                            Text("",    title = "Episode",      border_color = 7, color = 7),
+                                            Text("",    title = "Episode",                  border_color = 7, color = 7),
                                             
                                             # Step statistics.
-                                            Text("",    title = "Step",         border_color = 7, color = 7)
+                                            Text("",    title = "Step",                     border_color = 7, color = 7)
                                         ),
                                         
                                         # Agent/Environment statistics.
                                         HSplit(
                                             
                                             # Environment statistics.
-                                            Text("",    title = "Environment",  border_color = 7, color = 7),
+                                            Text("",    title = self._environment_.name,    border_color = 7, color = 7),
                                             
                                             # Agent statistics.
-                                            Text("",    title = "Agent",        border_color = 7, color = 7)
+                                            Text("",    title = self._agent_.name,          border_color = 7, color = 7)
                                         ),
                                         # Set parameters for statistics panel.
                                         title = "Statistics", border_color = 7, color = 7
                                     ),
                                     
                                     # Logging panel.
-                                    Log(                title = "Events",       border_color = 7, color = 7),
+                                    Log(                title = "Events",                   border_color = 7, color = 7),
                                     
                                     # Set parameters for display.
                                     title = f"{self._agent_.name} playing {self._environment_.name}", border_color = 7, color = 7

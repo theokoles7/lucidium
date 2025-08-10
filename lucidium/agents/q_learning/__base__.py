@@ -303,14 +303,23 @@ class QLearning(Agent):
         # If exploration rate (epsilon) is higher than a randomly chosen value...
         if rand() < self._exploration_rate_:
             
+            # Log for debugging.
+            self.__logger__.debug("Choosing to explore")
+            
             # Explore.
             self._current_action_:  int =   self._action_space_.sample()
         
         # Otherwise...
         else:
             
+            # Log for debugging.
+            self.__logger__.debug(f"Choosing best action for state {state}")
+            
             # Choose max-value action from Q-table based on current state.
             self._current_action_:  int =   self._q_table_.get_best_action(state = state)
+            
+        # Log for debugging.
+        self.__logger__.debug(f"Chose action {self._current_action_} for state {state}")
             
         # Submit chosen action.
         return self._current_action_
@@ -338,10 +347,6 @@ class QLearning(Agent):
         ## Args:
             * path  (str):  Path at which model can be located/loaded.
         """
-        # Log action for debugging.
-        self.__logger__.debug(f"Loading q-table from {path}")
-        
-        # Save Q-table to file.
         self._q_table_.load(path = path)
     
     @override
@@ -349,7 +354,7 @@ class QLearning(Agent):
         new_state:  int,
         reward:     float,
         done:       bool
-    ) -> None:
+    ) -> Dict[str, float]:
         """# Update Q-table.
         
         Update agent's Q-Table based on following rule:
@@ -371,23 +376,43 @@ class QLearning(Agent):
             * reward    (float):    Reward yielded/penalty incurred by action submitted to 
                                     environment.
             * done      (bool):     Flag indicating if new state is terminal.
+            
+        ## Returns:
+            * Dict[str, float]: Agent's observation metrics.
         """
         # Log for debugging.
         self.__logger__.debug(f"Updating Q-table[state: {self._current_state_}, action: {self._current_action_}, reward: {reward}]")
         
-        # Define new action-state value in Q-table.
-        self._q_table_[self._current_state_][self._current_action_] += (
-            self._learning_rate_ * (
-                reward + (
-                        (self._discount_rate_ * 0) 
-                        if done 
-                        else self._q_table_.get_best_value(state = new_state)
-                ) - self._q_table_[self._current_state_][self._current_action_]
-            )
-        )
+        # 1. What was our current estimate? Q(s, a)
+        q_old:          float = self._q_table_[self._current_state_][self._current_action_]
+        
+        # 2. Greedy look ahead for bootstrapped target (zero if new state is terminal).
+        # best_next_q = max_a' Q(s', a')
+        best_next_q:    float = 0.0 if done else self._q_table_.get_best_value(state = new_state)
+        
+        # 3. Bootstrapped target: r + γ * best_next_q (or just r if terminal)
+        target:         float = reward + (self._discount_rate_ * best_next_q)
+        
+        # 4. TD (Temporal Difference) error: Calculate how wrong our current estimate was.
+        td_error:       float = target - q_old
+        
+        # 5. Calculate update: Move Q(s, a) toward the target by a fraction alpha (learning rate).
+        q_new:          float = q_old + (self._learning_rate_ * td_error)
+        
+        # Update Q-Table.
+        self._q_table_[self._current_state_][self._current_action_] = q_new
         
         # Decay exploration rate (epsilon).
-        if not (self._decay_interval_ == "by-episode" and not done): self.decay_epsilon()
+        if self._decay_interval_ == "by-step" or done: self.decay_epsilon()
+        
+        # Return observation.
+        return  {
+                    "q_old":        q_old,
+                    "best_next_q":  best_next_q,
+                    "target":       target,
+                    "td_error":     td_error,
+                    "q_new":        q_new,
+                }
         
     def save_config(self,
         path:   str
@@ -432,8 +457,4 @@ class QLearning(Agent):
         ## Args:
             * path  (str):  Path at which model will be saved.
         """
-        # Log action for debugging.
-        self.__logger__.debug(f"Saving q-table to {path}")
-        
-        # Save Q-table to file.
         self._q_table_.save(path = path)

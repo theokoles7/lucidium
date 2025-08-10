@@ -15,11 +15,12 @@ def main(
         * action    (str):  Q-Learning action being executed.
     """
     # Initialize logger.
-    _logger_:       Logger =            get_child(
-                                            logger_name =   "q-learning.main"
-                                        )
+    _logger_:   Logger =    get_child(logger_name =   "q-learning.main")
     
-    try:# Dispatch command.
+    try:# Log for debugging.
+        _logger_.debug(f"Dispatching command {action}")
+        
+        # Dispatch command.
         AGENT_COMMAND_REGISTRY.dispatch(command = action, **{k:v for k, v in kwargs.items() if k != "command"})
     
     # Catch wildcard errors.

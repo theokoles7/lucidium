@@ -6,7 +6,7 @@ Link to paper: https://www.researchgate.net/profile/Mahesan-Niranjan/publication
 """
 
 from logging                            import Logger
-from typing                             import Any, Dict, Literal, override
+from typing                             import Any, Dict, Literal, override, Optional
 
 from numpy.random                       import rand
 
@@ -365,71 +365,78 @@ class SARSA(Agent):
         # Save Q-table to file.
         self._q_table_.load(path = path)
     
+    from typing import Any, Dict, Optional
+
     @override
     def observe(self,
         new_state:  int,
         reward:     float,
         done:       bool
-    ) -> None:
-        """# Update Q-table.
+    ) -> Optional[Dict[str, Any]]:
+        """# Observe.
         
-        Update agent's Q-Table based on following rule:
+        Update Q(S,A) using SARSA update:
         
-        Q(S,A) ← Q(S,A) + α[R + γQ(S',A') - Q(S,A)]
+        Q(S,A) ← Q(S,A) + α · δ
         
-        Where A' is the next action that will actually be taken according to the current policy.
+        Where:
+            * δ (TD error) = target − Q(S,A)
+            * target = R + γ · Q(S', A')     (or target = R if terminal)
+            * A' is the *policy's* next action (on-policy)
 
         ## Args:
-            * state         (int):      State of the agent before action being taken.
-            * action        (int):      Action chosen by agent.
-            * reward        (float):    Reward yielded by action taken.
-            * next_state    (int):      State of the agent after action is taken. 
-            * done          (bool):     Indicates if agent has reached end state.
+            * new_state (Any):      State of environment after action was submitted.
+            * reward    (float):    Reward yielded/penalty incurred by action submitted to 
+                                    environment.
+            * done      (bool):     Flag indicating if new state is terminal.
+        
+        ## Returns:
+            * Dict[str, float] | None: Agent observation metrics.
         """
-        # Skip update if we don't have a current state-action pair.
+        # If we don't have a current (S, A), we can't update yet (e.g., very first call).
         if self._current_state_ is None or self._current_action_ is None: return
 
-        # Extract current action & state.
-        S, A =  self._current_state_, self._current_action_
-            
-        # Log for debugging.
-        self.__logger__.debug(
-            f"SARSA update: S={self._current_state_}, A={self._current_action_}, "
-            f"R={reward}, S'={new_state}, A'={self._next_action_}, done={done}"
-        )
-        
-        # If episode is done, there's no next action, simply calculate reward target.
-        if done: temporal_difference_target: float = reward
-        
-        # Otherwise...
-        else:
-            
-            # Choose next action and calculate reward target for next action.
-            self._next_action_:         int =   self._choose_action_(state = new_state)
-            temporal_difference_target: float = reward + self._discount_rate_ * self._q_table_[new_state][self._next_action_]
-            
-        # Calculate error.
-        temporal_difference_error:      float = temporal_difference_target - self._q_table_[self._current_state_][self._current_action_]
+        # 1. What was our current estimate? Q(S, A)
+        q_old:              float =         self._q_table_[self._current_state_][self._current_action_]
+
+        # 2) Choose next action A' according to the *current policy* (on-policy), unless this is a terminal transition.
+        A_next:             Optional[int] = None if done else self._choose_action_(state = new_state)
+        best_next_value:    float =         0.0 if done else self._q_table_[new_state][A_next]
+
+        # 3) Bootstrapped target for SARSA: R + γ * Q(S', A')  (or just R if terminal).
+        target:             float =         reward + (self._discount_rate_ * best_next_value)
+
+        # 4) TD (Temporal-Difference) error.
+        td_error:           float =         target - q_old
+
+        # 5) Update rule: move Q(S,A) toward the target by a fraction α (learning rate).
+        q_new:              float =         q_old + self._learning_rate_ * td_error
         
         # Update Q-Table.
-        self._q_table_[self._current_state_][self._current_action_] += self._learning_rate_ * temporal_difference_error
-        
-        # If episode concluded...
-        if done:
-            
-            # Reset current action & state.
-            self._current_action_:  int =   None
-            self._current_state_:   int =   None
-            
-        # Otherwise...
-        else:
-            
-            # Shift buffer.
-            self._current_action_:  int =   self._next_action_
-            self._current_state_:   int =   new_state
-        
+        self._q_table_[self._current_state_][self._current_action_] = q_new
+
+        # Debug logging with decomposed terms
+        self.__logger__.debug(
+            f"""SARSA update | S={self._current_state_}, A={self._current_action_}, """
+            f"""R={reward}, S'={new_state}, A'={A_next}, done={done} | """
+            f"""q_old={q_old:.6f}, target={target:.6f}, td_error={td_error:.6f}, q_new={q_new:.6f}"""
+        )
+
+        # Advance the on-policy buffer for the next step.
+        self._current_state_ =  None if done else new_state
+        self._current_action_ = None if done else A_next
+        self._next_action_ =    None
+
         # Decay exploration rate (epsilon).
-        if not (self._decay_interval_ == "by-episode" and not done): self.decay_epsilon()
+        if done or self._decay_interval_ == "by-step": self.decay_epsilon()
+
+        # Return observation.
+        return  {
+                    "q_old":    q_old,
+                    "target":   target,
+                    "td_error": td_error,
+                    "q_new":    q_new
+                }
         
     def save_config(self,
         path:   str
