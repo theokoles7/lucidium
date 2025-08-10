@@ -68,6 +68,9 @@ class NeuralLogicMachine(Module, Agent):
         # Initialize module.
         super(NeuralLogicMachine, self).__init__()
         
+        # Initialize logger.
+        self.__logger__:            Logger =            get_child("nlm")
+        
         # Define attributes.
         self._depth_:               int =               depth
         self._breadth_:             int =               breadth
@@ -122,6 +125,9 @@ class NeuralLogicMachine(Module, Agent):
             
         # Set output dimensions for IO residual or set to last layer's output dimensions by default.
         self._output_dimensions_:   List[int] =         total_output_dimension if io_residual else current_dimensions
+        
+        # Log initialization for debugging.
+        self.__logger__.debug(f"Initialized NLM agent ({locals()})")
         
     # PROPERTIES ===================================================================================
     

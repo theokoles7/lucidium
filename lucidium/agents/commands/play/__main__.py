@@ -7,6 +7,7 @@ __all__ = ["Game"]
 
 from dashing                                import HSplit, Log, Text, VSplit
 from json                                   import dump, dumps
+from logging                                import Logger
 from math                                   import inf
 from os                                     import makedirs
 from time                                   import sleep
@@ -16,7 +17,7 @@ from lucidium.agents                        import Agent
 from lucidium.agents.commands.play.__args__ import register_play_parser
 from lucidium.environments                  import Environment
 from lucidium.registries                    import AGENT_REGISTRY, ENVIRONMENT_REGISTRY, register_agent_command
-from lucidium.utilities                     import TIMESTAMP
+from lucidium.utilities                     import get_child, TIMESTAMP
 
 class Game():
     """# Game (Process)
@@ -52,6 +53,9 @@ class Game():
                                             applies if `--save-results` or `--save` flags are 
                                             passed. Defaults to "./output/games/"
         """
+        # Initialize logger.
+        self.__logger__:        Logger =        get_child("game")
+        
         # Load environment.
         self._environment_:     Environment =   ENVIRONMENT_REGISTRY.load(
                                                     name = environment,
@@ -80,6 +84,9 @@ class Game():
         # Set flag to save results.
         self._save_results_:    bool =          save_results
         self._save_path_:       str =           save_path
+        
+        # Log initialization for debugging.
+        self.__logger__.debug(f"Initialized game-play process ({locals()})")
         
     # METHODS ======================================================================================
     
@@ -148,6 +155,9 @@ class Game():
         ## Returns:
             * Dict[str, Any]:   Episode statistics.
         """
+        # Log for debugging.
+        self.__logger__.debug(f"Executing episode {self._current_episode_}/{self._episodes_}")
+        
         # Reset environment.
         self._current_state_:   Any =   self._environment_.reset()
         
@@ -189,6 +199,9 @@ class Game():
         ## Returns:
             * Dict[str, Any]:   Step statistics.
         """
+        # Log for debugging.
+        self.__logger__.debug(f"Executing step {self._current_step_}/{self._max_steps_}")
+        
         # Prompt agent to choose action.
         action:                 Any =               self._agent_.act(self._current_state_)
         
@@ -219,7 +232,7 @@ class Game():
     
     def _initialize_display_(self) -> None:
         """# Initialize (Animation) Layout."""
-        # Instantiate UI layout.
+                # Instantiate UI layout.
         self._ui_:  VSplit =    VSplit(HSplit(
                                     # Environment state panel.
                                     Text("",            title = "State",        border_color = 7, color = 7),
@@ -256,6 +269,9 @@ class Game():
                                     # Set parameters for display.
                                     title = f"{self._agent_.name} playing {self._environment_.name}", border_color = 7, color = 7
                                 ))
+        
+        # Log for debugging.
+        self.__logger__.debug(f"Initialized animatino display")
         
         # Extract components for updates.
         self._environment_state_panel_:         Text =      self._ui_.items[0].items[0]

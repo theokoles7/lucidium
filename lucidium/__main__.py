@@ -23,14 +23,17 @@ def main(*args, **kwargs) -> Any:
                                     logging_path =  _arguments_.logging_path
                                 )
     
-    try:# Log banner.
-        _logger_.info(BANNER)
+    try:# Log version for debugigng.
+        _logger_.debug(BANNER)
         
         # If command corresponds to agents...
         if _arguments_.command in AGENT_REGISTRY:
             
             # Add agent to arguments.
             _arguments_.agent =         _arguments_.command
+            
+            # Log routing for debugging.
+            _logger_.debug(f"Routing agent command: {_arguments_.agent}")
             
             # Dispatch agent.
             return AGENT_REGISTRY.dispatch(cls = _arguments_.command, **vars(_arguments_))
@@ -41,11 +44,14 @@ def main(*args, **kwargs) -> Any:
             # Add environment to arguments.
             _arguments_.environment =   _arguments_.command
             
+            # Log routing for debugging.
+            _logger_.debug(f"Routing environment command: {_arguments_.environment}")
+            
             # Dispatch environment.
             return ENVIRONMENT_REGISTRY.dispatch(cls = _arguments_.command, **vars(_arguments_))
     
     # Catch wildcard errors.
-    except Exception as e:  _logger_.critical(f"Unexpected error: {e}", exc_info = True)
+    except Exception as e:  _logger_.critical(f"Unexpected error caught in main process: {e}", exc_info = True)
     
     # Exit gracefully.
     finally:                _logger_.debug("Exiting")

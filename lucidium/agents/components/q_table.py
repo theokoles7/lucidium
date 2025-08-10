@@ -8,6 +8,7 @@ __all__ = ["QTable"]
 from ast                import literal_eval
 from collections        import defaultdict
 from json               import dump, load
+from logging            import Logger
 from pathlib            import Path
 from typing             import Any, Dict, Hashable, List, Literal, Tuple, Union
 
@@ -16,6 +17,7 @@ from numpy.random       import uniform
 from numpy.typing       import NDArray
 
 from lucidium.spaces    import Discrete
+from lucidium.utilities import get_child
 
 class QTable():
     """# Q-Table
@@ -51,6 +53,9 @@ class QTable():
         # Assert that action space is either an integer or a discrete space.
         assert isinstance(action_space, (int, Discrete)), f"Invalid action space type provided: {type(action_space)}"
         
+        # Initialize logger.
+        self.__logger__:                Logger =                get_child("q-table")        
+        
         # Define number of actions.
         self._number_of_actions:        int =                   action_space                        \
                                                                 if isinstance(action_space, int)    \
@@ -61,6 +66,9 @@ class QTable():
         
         # Initialize table.
         self._table_:                   Dict[int, NDArray] =    defaultdict(self._initialize_row_)
+        
+        # Log initialization for debugging.
+        self.__logger__.debug(f"Initialized Q-Table ({locals()})")
         
     # METHODS ======================================================================================
     
@@ -74,7 +82,7 @@ class QTable():
     def get_best_action(self,
         state:  Union[Tuple[Union[int, float], ...], int]
     ) -> int:
-        """# Get Bast Action.
+        """# Get Best Action.
         
         Get the highest quality action for the given state.
 
@@ -84,6 +92,10 @@ class QTable():
         ## Returns:
             * int:  Highest quality action for state.
         """
+        # Log action for debugging.
+        self.__logger__.debug(f"Getting best action for state {state}")
+        
+        # Get best action.
         return int(argmax(self[state]))
     
     def get_best_value(self,
@@ -97,6 +109,10 @@ class QTable():
         ## Returns:
             * float:    Highest action value found for state.
         """
+        # Log action for debugging.
+        self.__logger__.debug(f"Getting best action value for state {state}")
+        
+        # Get best value.
         return np_max(self[state])
         
     def load(self,
@@ -107,6 +123,9 @@ class QTable():
         ## Args:
             * path  (str | Path):   Path from which table will be loaded.
         """
+        # Log for debugging.
+        self.__logger__.debug(f"Loading Q-Table from {path}")
+        
         # Load table from file.
         with Path(path).open("r", encoding = "utf-8") as file_in: self.deserialize(data = load(file_in))
         
@@ -123,6 +142,9 @@ class QTable():
         
         # Create directories if they dont exist.
         path.parent.mkdir(parents = True, exist_ok = True)
+        
+        # Log action for debugging.
+        self.__logger__.debug(f"Saving Q-Table to {path}")
         
         # Write table to file.
         with path.open(mode = "w", encoding = "utf-8") as file_out: dump(self.serialize(), fp = file_out)
