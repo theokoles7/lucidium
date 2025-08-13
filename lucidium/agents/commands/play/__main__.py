@@ -1,4 +1,4 @@
-"""# lucidium.agents.commands.play
+"""# lucidium.agents.commands.play.main
 
 Agent's game-play process.
 """

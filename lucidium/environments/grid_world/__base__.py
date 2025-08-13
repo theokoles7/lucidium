@@ -5,19 +5,21 @@ Defines the Grid World environment.
 
 __all__ = ["GridWorld"]
 
-from typing                                         import Any, Dict, List, override, Optional, Set, Tuple
+from typing                                         import Any, Dict, List, Literal, override, Optional, Set, Tuple
 
 from lucidium.environments.__base__                 import Environment
 from lucidium.environments.grid_world.__args__      import register_grid_world_parser
+from lucidium.environments.grid_world.__main__      import main
 from lucidium.environments.grid_world.actions       import GridWorldActions
 from lucidium.environments.grid_world.components    import Grid
 from lucidium.registries                            import register_environment
 from lucidium.spaces                                import Discrete
 
 @register_environment(
-    name =      "grid-world",
-    tags =      ["game", "single-player", "planning", "navigation"],
-    parser =    register_grid_world_parser
+    name =          "grid-world",
+    tags =          ["game", "single-player", "planning", "navigation"],
+    entry_point =   main,
+    parser =        register_grid_world_parser
 )
 class GridWorld(Environment):
     """# Grid World (Environment).
@@ -161,6 +163,29 @@ class GridWorld(Environment):
         return self._grid_.progress
     
     # METHODS ======================================================================================
+    
+    @override
+    def render(self,
+        render_mode:    Literal["ansi"]
+    ) -> str:
+        """# Render (Grid World).
+
+        ## Args:
+            * render_mode (Literal[&quot;ansi&quot;]): Format in which environment will be rendered.
+
+        ## Raises:
+            * RuntimeError: If environment does not support rendering mode provided.
+
+        ## Returns:
+            * str:  Environment rendering.
+        """
+        # Match rendering mode.
+        match render_mode:
+            
+            case "ansi":    return str(self)
+            
+            # Unsupported rendering mode.
+            case _:         raise RuntimeError(f"Render mode not supported for Grid World: {render_mode}")
     
     @override
     def reset(self) -> int:

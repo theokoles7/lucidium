@@ -1,5 +1,7 @@
 """# lucidium.agents.q_learning.main"""
 
+__all__ = ["main"]
+
 from logging                import Logger
 
 from lucidium.registries    import AGENT_COMMAND_REGISTRY
