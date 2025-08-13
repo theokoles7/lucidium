@@ -20,13 +20,14 @@ def register_play_parser(
     ## Args:
         * parent_subparser  (_SubParsersAction):    Parent's sub-parser object.
     """
-    # Initialize Q-Learning Agent parser.
+    # Initialize parser.
     _parser_:           ArgumentParser =    parent_subparser.add_parser(
         name =          "play",
         help =          "Make agent play a game.",
         description =   """Initiate episodic game play process."""
     )
     
+    # Initialize sub-parser.
     _subparser_:        _SubParsersAction = _parser_.add_subparsers(
         dest =          "environment",
         help =          """Environment that agent will interact with."""

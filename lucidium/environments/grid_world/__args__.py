@@ -5,9 +5,11 @@ Argument definitions & parsing for Grid World environment.
 
 __all__ = ["register_grid_world_parser"]
 
-from argparse   import _ArgumentGroup, ArgumentParser, _SubParsersAction
-from ast        import literal_eval
-from typing     import Dict, List, Set, Tuple
+from argparse               import _ArgumentGroup, ArgumentParser, _SubParsersAction
+from ast                    import literal_eval
+from typing                 import Dict, List, Set, Tuple
+
+from lucidium.registries    import ENVIRONMENT_COMMAND_REGISTRY
 
 def register_grid_world_parser(
     parent_subparser:   _SubParsersAction
@@ -31,6 +33,12 @@ def register_grid_world_parser(
                         (1, 7), (1, 8), (2, 1), (2, 8), (3, 3), (3, 4), (3, 5), (3, 6), (4, 6), 
                         (5, 3), (6, 3), (6, 4), (6, 5), (6, 6), (7, 1), (7, 8), (8, 1), (8, 2), 
                         (8, 7), (8, 8)}" --portals '[{"entry": (2, 2), "exit": (7, 7)}]'"""
+    )
+    
+    # Initialize sub-parser.
+    _subparser_:    _SubParsersAction = _parser_.add_subparsers(
+        dest =          "action",
+        help =          """Action to be performed for environment."""
     )
 
     # +============================================================================================+
@@ -166,6 +174,9 @@ def register_grid_world_parser(
     # +============================================================================================+
     # | END ARGUMENTS                                                                              |
     # +============================================================================================+
+    
+    # Register environment commands.
+    ENVIRONMENT_COMMAND_REGISTRY.register_parsers(subparser = _subparser_)
     
 # Define function for parsing set of tuples.
 def set_of_tuples(

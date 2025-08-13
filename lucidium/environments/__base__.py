@@ -69,6 +69,23 @@ class Environment(ABC):
     # METHODS ======================================================================================
     
     @abstractmethod
+    def render(self,
+        render_mode:    str
+    ) -> Any:
+        """# Render Environment.
+
+        ## Args:
+            * render_mode (Literal[&quot;ansi&quot;]): Format in which environment will be rendered.
+
+        ## Raises:
+            * RuntimeError: If environment does not support rendering mode provided.
+
+        ## Returns:
+            * Any:  Environment rendering.
+        """
+        pass
+    
+    @abstractmethod
     def reset(self) -> Any:
         """# Reset Environment.
         
