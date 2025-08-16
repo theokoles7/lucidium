@@ -37,7 +37,7 @@ def register_grid_world_parser(
     
     # Initialize sub-parser.
     _subparser_:    _SubParsersAction = _parser_.add_subparsers(
-        dest =          "action",
+        dest =          "environment_action",
         help =          """Action to be performed for environment."""
     )
 

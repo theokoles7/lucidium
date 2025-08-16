@@ -29,7 +29,7 @@ def register_sarsa_parser(
     )
     
     _subparser_:    _SubParsersAction = _parser_.add_subparsers(
-        dest =          "action",
+        dest =          "agent_action",
         help =          """Action that agent will execute."""
     )
 

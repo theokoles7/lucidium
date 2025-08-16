@@ -33,9 +33,8 @@ def register_nlm_parser(
     
     # Define sub-parser.
     _subparser_:        _SubParsersAction = _parser_.add_subparsers(
-        title =         "action",
-        description =   """Neural Logic Machine commands.""",
-        dest =          "action"
+        dest =          "agent_action",
+        description =   """Neural Logic Machine commands."""
     )
 
     # +============================================================================================+

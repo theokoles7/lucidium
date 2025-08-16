@@ -30,9 +30,8 @@ def register_block_world_parser(
     
     # Define sub-parser for actions.
     _subparser_:        _SubParsersAction = _parser_.add_subparsers(
-        title =         "action",
-        description =   "Block World environment commands.",
-        dest =          "action"
+        dest =          "environment_action",
+        description =   "Block World environment commands."
     )
 
     # +============================================================================================+
