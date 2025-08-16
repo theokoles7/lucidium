@@ -5,11 +5,12 @@ Defines the Tic Tac Toe game framework.
 
 from functools                                      import cached_property
 from logging                                        import Logger
-from typing                                         import Any, Dict, List, override, Tuple, Union
+from typing                                         import Any, Dict, List, Literal, override, Tuple, Union
 
 from torch                                          import Tensor
 
 from lucidium.environments.tic_tac_toe.__args__     import register_tic_tac_toe_parser
+from lucidium.environments.tic_tac_toe.__main__     import main
 from lucidium.environments.tic_tac_toe.components   import *
 from lucidium.environments.__base__                 import Environment
 from lucidium.registries                            import register_environment
@@ -18,9 +19,10 @@ from lucidium.symbolic                              import Predicate
 from lucidium.utilities                             import get_child
 
 @register_environment(
-    name =      "tic-tac-toe",
-    tags =      ["game", "two-player", "turn-based", "discrete", "strategic"],
-    parser =    register_tic_tac_toe_parser
+    name =          "tic-tac-toe",
+    tags =          ["game", "two-player", "turn-based", "discrete", "strategic"],
+    entry_point =   main,
+    parser =        register_tic_tac_toe_parser
 )
 class TicTacToe(Environment):
     """# Tic-Tac-Toe (Environment)
@@ -54,9 +56,6 @@ class TicTacToe(Environment):
             * move_penalty          (float, optional):  Cost of making a single move. Defaults to 
                                                         -0.1.
         """
-        # Inititialize environment.
-        super(TicTacToe, self).__init__(**kwargs)
-        
         # Initialize logger.
         self.__logger__:                Logger =    get_child("tic-tac-toe")
         
@@ -102,10 +101,26 @@ class TicTacToe(Environment):
         return self._board_.has_winner or self._board_.is_draw
     
     @override
+    @property
+    def name(self) -> str:
+        """# (Tic-Tac-Toe) Name
+
+        Environment's proper name.
+        """
+        return "Tic-Tac-Toe"
+    
+    @override
     @cached_property
-    def state_space(self) -> Box:
+    def observation_space(self) -> Box:
         """# (Tic-Tac-Toe) Observation Space"""
         return Box(lower = -1, upper = 1, shape = (self._size_, self._size_), dtype = int)
+    
+    @override
+    @property
+    def statistics(self) -> Dict[str, Any]:
+        """# (Tic-Tac-Toe) Statistics"""
+        # TODO: Configure tic-tac-toe statistics.
+        return {}
     
     @property
     def winner(self) -> Player:
@@ -113,6 +128,29 @@ class TicTacToe(Environment):
         return self._winner_
     
     # METHODS ======================================================================================
+    
+    @override
+    def render(self,
+        render_mode:    Literal["ansi"]
+    ) -> str:
+        """# Render (Tic-Tac-Toe).
+
+        ## Args:
+            * render_mode (Literal[&quot;ansi&quot;]): Format in which environment will be rendered.
+
+        ## Raises:
+            * RuntimeError: If environment does not support rendering mode provided.
+
+        ## Returns:
+            * str:  Environment rendering.
+        """
+        # Match rendering mode.
+        match render_mode:
+            
+            case "ansi":    return str(self)
+            
+            # Unsupported rendering mode.
+            case _:         raise RuntimeError(f"Render mode not supported for Tic-Tac-Toe: {render_mode}")
     
     @override
     def reset(self) -> Union[Tensor, List[Predicate]]:

@@ -5,7 +5,9 @@ Argument definitions and parsing for Tic-Tac-Toe environment.
 
 __all__ = ["register_tic_tac_toe_parser"]
 
-from argparse   import _ArgumentGroup, ArgumentParser, _SubParsersAction
+from argparse               import _ArgumentGroup, ArgumentParser, _SubParsersAction
+
+from lucidium.registries    import ENVIRONMENT_COMMAND_REGISTRY
 
 def register_tic_tac_toe_parser(
     parent_subparser:   _SubParsersAction
@@ -105,3 +107,6 @@ def register_tic_tac_toe_parser(
     # +============================================================================================+
     # | END ARGUMENTS                                                                              |
     # +============================================================================================+
+    
+    # Register environment action parsers.
+    ENVIRONMENT_COMMAND_REGISTRY.register_parsers(subparser = _subparser_)
