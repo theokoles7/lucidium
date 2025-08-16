@@ -19,7 +19,10 @@ def main(
                                             logger_name =   "sarsa.main"
                                         )
     
-    try:# Dispatch command.
+    try:# Log for debugging.
+        _logger_.debug(f"Dispatching action: {action}")
+        
+        # Dispatch command.
         AGENT_COMMAND_REGISTRY.dispatch(command = action, **{k:v for k, v in kwargs.items() if k != "command"})
     
     except Exception as e:  _logger_.critical(f"Unexpected error caught in SARSA main process: {e}", exc_info = True)

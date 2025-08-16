@@ -23,6 +23,9 @@ def main(*args, **kwargs) -> Any:
                                     logging_path =  _arguments_.logging_path
                                 )
     
+    # Log arguments for debugging.
+    _logger_.debug(f"Arguments: {vars(_arguments_)}")
+    
     try:# Log version for debugigng.
         _logger_.debug(BANNER)
         
