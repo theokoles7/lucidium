@@ -4,19 +4,21 @@ Block World environment implementation.
 """
 
 from logging                                            import Logger
-from typing                                             import Any, Dict, override, Tuple, Union
+from typing                                             import Any, Dict, Literal, override, Tuple, Union
 
 from lucidium.environments.__base__                     import Environment
 from lucidium.environments.block_world.__args__         import register_block_world_parser
+from lucidium.environments.block_world.__main__         import main
 from lucidium.environments.block_world.components.world import World
 from lucidium.registries                                import register_environment
 from lucidium.spaces                                    import MultiDiscrete
 from lucidium.utilities                                 import get_child
 
 @register_environment(
-    name =      "block-world",
-    tags =      ["planning", "symbolic", "discrete"],
-    parser =    register_block_world_parser
+    name =          "block-world",
+    tags =          ["planning", "symbolic", "discrete"],
+    entry_point =   main,
+    parser =        register_block_world_parser
 )
 class BlockWorld(Environment):
     """# Block World (Environment)
@@ -116,11 +118,50 @@ class BlockWorld(Environment):
     
     @override
     @property
+    def name(self) -> str:
+        """# (Block World) Name
+
+        Block World's proper name.
+        """
+        return "Block World"
+    
+    @override
+    @property
     def observation_space(self) -> MultiDiscrete:
         """# (Block World) Observation Space."""
         return MultiDiscrete(shape = (self._block_quantity_, self._block_quantity_, self._block_quantity_))
     
+    @override
+    @property
+    def statistics(self) -> Dict[str, Any]:
+        """# (Block World) Statistics"""
+        # TODO: Configure block world statistics.
+        return {}
+    
     # METHODS ======================================================================================
+    
+    @override
+    def render(self,
+        render_mode:    Literal["ansi"]
+    ) -> str:
+        """# Render (Block World).
+
+        ## Args:
+            * render_mode (Literal[&quot;ansi&quot;]): Format in which environment will be rendered.
+
+        ## Raises:
+            * RuntimeError: If environment does not support rendering mode provided.
+
+        ## Returns:
+            * str:  Environment rendering.
+        """
+        # Match rendering mode.
+        match render_mode:
+            
+            case "ansi":    return str(self)
+            
+            # Unsupported rendering mode.
+            case _:         raise RuntimeError(f"Render mode not supported for Block World: {render_mode}")
     
     def reset(self) -> None:
         """# Reset (Environment).
@@ -167,3 +208,13 @@ class BlockWorld(Environment):
         
         # Provide action result.
         return self._world_.encode(), reward, self.done, event
+    
+    # DUNDERS ======================================================================================
+    
+    def __repr__(self) -> str:
+        """# (Block World) Object Representation"""
+        return f"""<BlockWorld(block_quantity = {self._block_quantity_})>"""
+    
+    def __str__(self) -> str:
+        """# (Block World) String Representation"""
+        return str(self._world_)

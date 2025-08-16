@@ -5,7 +5,9 @@ Argument definitions and parsing for Block World environment.
 
 __all__ = ["register_block_world_parser"]
 
-from argparse   import _ArgumentGroup, ArgumentParser, _SubParsersAction
+from argparse               import _ArgumentGroup, ArgumentParser, _SubParsersAction
+
+from lucidium.registries    import ENVIRONMENT_COMMAND_REGISTRY
 
 def register_block_world_parser(
     parent_subparser:   _SubParsersAction
@@ -126,3 +128,6 @@ def register_block_world_parser(
     # +============================================================================================+
     # | END ARGUMENTS                                                                              |
     # +============================================================================================+
+    
+    # Register environment actino parsers..
+    ENVIRONMENT_COMMAND_REGISTRY.register_parsers(subparser = _subparser_)

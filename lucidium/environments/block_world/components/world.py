@@ -259,7 +259,7 @@ class World():
             this.place_on(block = other)
             
             # If the other block is no longer placeable, or if we're creating only one stack...
-            if self._one_stack_:
+            if self._use_one_stack_:
                 
                 # Remove the other block from leaves.
                 leaves.remove(other)
