@@ -31,9 +31,8 @@ def register_tic_tac_toe_parser(
     
     # Define sub-parser for actions (train, play, analyze, etc.)
     _subparser_:        _SubParsersAction = _parser_.add_subparsers(
-        title =         "action",
-        description =   "Tic-Tac-Toe environment commands.",
-        dest =          "action"
+        dest =          "environment_action",
+        description =   "Tic-Tac-Toe environment commands."
     )
 
     # +============================================================================================+
