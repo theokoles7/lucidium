@@ -7,6 +7,8 @@ __all__ = ["Goal"]
 
 from typing                                                         import Any, Dict, override, Optional, Tuple
 
+from numpy                                                          import array, uint8
+from numpy.typing                                                   import NDArray
 from termcolor                                                      import colored
 
 from lucidium.environments.grid_world.components.squares.__base__   import Square
@@ -33,6 +35,32 @@ class Goal(Square):
         
         # Override terminal property.
         self._terminal_:    bool =  True
+        
+    # PROPERTIES ===================================================================================
+    
+    @property
+    def ansi(self) -> str:
+        """# (Goal Square) ANSI Representation"""
+        return colored("◯", color = "green")
+    
+    @property
+    def ascii(self) -> str:
+        """# (Goal Square) ASCII Representation"""
+        return "G"
+    
+    @property
+    def rgb(self) -> NDArray:
+        """# (Goal Square) RGB Representation"""
+        return array([
+            [(255,255,255), (255,255,255), (0,0,0),       (0,0,0),       (255,255,255), (255,255,255), (0,0,0),       (0,0,0)],
+            [(255,255,255), (255,255,255), (0,0,0),       (0,0,0),       (255,255,255), (255,255,255), (0,0,0),       (0,0,0)],
+            [(0,0,0),       (0,0,0),       (255,255,255), (255,255,255), (0,0,0),       (0,0,0),       (255,255,255), (255,255,255)],
+            [(0,0,0),       (0,0,0),       (255,255,255), (255,255,255), (0,0,0),       (0,0,0),       (255,255,255), (255,255,255)],
+            [(255,255,255), (255,255,255), (0,0,0),       (0,0,0),       (255,255,255), (255,255,255), (0,0,0),       (0,0,0)],
+            [(255,255,255), (255,255,255), (0,0,0),       (0,0,0),       (255,255,255), (255,255,255), (0,0,0),       (0,0,0)],
+            [(0,0,0),       (0,0,0),       (255,255,255), (255,255,255), (0,0,0),       (0,0,0),       (255,255,255), (255,255,255)],
+            [(0,0,0),       (0,0,0),       (255,255,255), (255,255,255), (0,0,0),       (0,0,0),       (255,255,255), (255,255,255)]
+        ], dtype = uint8)
         
     # METHODS ======================================================================================
     

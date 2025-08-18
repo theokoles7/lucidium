@@ -7,6 +7,8 @@ __all__ = ["Loss"]
 
 from typing                                                         import Any, Dict, override, Optional, Tuple
 
+from numpy          import array, uint8
+from numpy.typing   import NDArray
 from termcolor                                                      import colored
 
 from lucidium.environments.grid_world.components.squares.__base__   import Square
@@ -33,6 +35,32 @@ class Loss(Square):
         
         # Override terminal property.
         self._terminal_:    bool =  True
+        
+    # PROPERTIES ===================================================================================
+    
+    @property
+    def ansi(self) -> str:
+        """# (Loss Square) ANSI Representation"""
+        return colored(text = "◯", color = "red")
+    
+    @property
+    def ascii(self) -> str:
+        """# (Loss Square) ASCII Representation"""
+        return "L"
+    
+    @property
+    def rgb(self) -> NDArray:
+        """# (Loss Square) RGB Representation"""
+        return array([
+            [(255,0,0),  (139,0,0),  (80,80,80), (80,80,80), (80,80,80), (80,80,80), (139,0,0),  (255,0,0)],
+            [(139,0,0),  (255,0,0),  (139,0,0),  (80,80,80), (80,80,80), (139,0,0),  (255,0,0),  (139,0,0)],
+            [(80,80,80), (139,0,0),  (255,0,0),  (139,0,0),  (139,0,0),  (255,0,0),  (139,0,0),  (80,80,80)],
+            [(80,80,80), (80,80,80), (139,0,0),  (255,0,0),  (255,0,0),  (139,0,0),  (80,80,80), (80,80,80)],
+            [(80,80,80), (80,80,80), (139,0,0),  (255,0,0),  (255,0,0),  (139,0,0),  (80,80,80), (80,80,80)],
+            [(80,80,80), (139,0,0),  (255,0,0),  (139,0,0),  (139,0,0),  (255,0,0),  (139,0,0),  (80,80,80)],
+            [(139,0,0),  (255,0,0),  (139,0,0),  (80,80,80), (80,80,80), (139,0,0),  (255,0,0),  (139,0,0)],
+            [(255,0,0),  (139,0,0),  (80,80,80), (80,80,80), (80,80,80), (80,80,80), (139,0,0),  (255,0,0)]
+        ], dtype = uint8)
         
     # METHODS ======================================================================================
     
