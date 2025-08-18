@@ -7,6 +7,8 @@ __all__ = ["Coin"]
 
 from typing                                                         import Any, Dict, override, Optional, Tuple
 
+from numpy                                                          import array, uint8
+from numpy.typing                                                   import NDArray
 from termcolor                                                      import colored
 
 from lucidium.environments.grid_world.components.squares.__base__   import Square
@@ -35,6 +37,30 @@ class Coin(Square):
         self._collected_:   bool =  False
         
     # PROPERTIES ===================================================================================
+    
+    @property
+    def ansi(self) -> str:
+        """# (Coin Square) ANSI Representation"""
+        return " " if self.was_collected else colored(text = "$", color = "yellow")
+    
+    @property
+    def ascii(self) -> str:
+        """# (Coin Square) ASCII Representation"""
+        return " " if self.was_collected else "$"
+    
+    @property
+    def rgb(self) -> NDArray:
+        """# (Coin Square) RGB Representation"""
+        return array([
+            [(200,200,200), (200,200,200), (184,134,11),  (218,165,32),  (218,165,32),  (184,134,11),  (200,200,200), (200,200,200)],
+            [(200,200,200), (184,134,11),  (255,215,0),   (255,255,224), (255,255,224), (255,215,0),   (184,134,11),  (200,200,200)],
+            [(184,134,11),  (255,215,0),   (255,255,224), (255,255,224), (255,255,224), (255,255,224), (255,215,0),   (184,134,11)],
+            [(218,165,32),  (255,255,224), (255,255,224), (255,215,0),   (255,215,0),   (255,255,224), (255,255,224), (218,165,32)],
+            [(218,165,32),  (255,255,224), (255,255,224), (255,215,0),   (255,215,0),   (255,255,224), (255,255,224), (218,165,32)],
+            [(184,134,11),  (255,215,0),   (255,255,224), (255,255,224), (255,255,224), (255,255,224), (255,215,0),   (184,134,11)],
+            [(200,200,200), (184,134,11),  (255,215,0),   (255,255,224), (255,255,224), (255,215,0),   (184,134,11),  (200,200,200)],
+            [(200,200,200), (200,200,200), (184,134,11),  (218,165,32),  (218,165,32),  (184,134,11),  (200,200,200), (200,200,200)]
+        ], dtype = uint8)
     
     @property
     def was_collected(self) -> bool:

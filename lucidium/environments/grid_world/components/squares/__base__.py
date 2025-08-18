@@ -5,7 +5,10 @@ Defines the basic square component of Grid World environment.
 
 __all__ = ["Square"]
 
-from typing import Any, Dict, Optional, Tuple
+from typing         import Any, Dict, Optional, Tuple
+
+from numpy          import array, uint8
+from numpy.typing   import NDArray
 
 class Square():
     """# (Grid World) Square
@@ -34,6 +37,16 @@ class Square():
     # PROPERTIES ===================================================================================
     
     @property
+    def ansi(self) -> str:
+        """# (Square) ANSI Representation"""
+        return " "
+    
+    @property
+    def ascii(self) -> str:
+        """# (Square) ASCII Representation"""
+        return " "
+    
+    @property
     def column(self) -> int:
         """# (Square's) Column
 
@@ -56,6 +69,11 @@ class Square():
         True if square represents a terminal state/concludes interaction episode.
         """
         return self._terminal_
+    
+    @property
+    def rgb(self) -> NDArray:
+        """# (Square) RGB Representation"""
+        return array([[[200, 200, 200]] * 8,] * 8, dtype = uint8)
     
     @property
     def row(self) -> int:
