@@ -35,6 +35,6 @@ class ObservationCodec():
         
     # METHODS ======================================================================================
     
-    def encode(self,
-        observation:    Any
-    )
+    # def encode(self,
+    #     observation:    Any
+    # )

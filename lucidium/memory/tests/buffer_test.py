@@ -6,7 +6,7 @@ Test suite for Experience Replay Buffer.
 from lucidium.memory.buffer     import ExperienceReplayBuffer
 
 class TestExperienceReplayBuffer():
-    """Experience Replay Buffer Test Suite."""
+    """# Experience Replay Buffer Test Suite."""
         
     def test_buffer_add_and_size(self):
         """# Test Adding Transitions and Size Tracking in Experience Replay Buffer."""
