@@ -58,6 +58,7 @@ setup(
                                         "dashing",
                                         "matplotlib",
                                         "numpy",
+                                        "pytest",
                                         "termcolor",
                                         "torch"
                                     ],
