@@ -415,18 +415,20 @@ class QLearning(Agent):
                 }
         
     def save_config(self,
-        path:   str
+        path:           str,
+        config_name:    str
     ) -> None:
         """# Save Model Configuration.
 
         ## Args:
-            * path  (str):  Path at which agent confriguration file will be saved.
+            * path          (str):  Path at which agent confriguration file will be saved.
+            * config_name   (str):  Name of configuration file.
         """
         from json   import dump
         from os     import makedirs
         
         # Ensure that path exists.
-        makedirs(name = path, exist_ok = True)
+        makedirs(name = f"{path}/q-learning", exist_ok = True)
         
         # Save configuratino to JSON file.
         dump(
@@ -438,7 +440,7 @@ class QLearning(Agent):
                             "exploration_min":      self._exploration_min_,
                             "bootstrap":            self._bootstrap_
                         },
-            fp =        open(f"{path}/q_learning_config.json", "w"),
+            fp =        open(f"{path}/q_learning/{config_name}.json", "w"),
             indent =    2,
             default =   str
         )
