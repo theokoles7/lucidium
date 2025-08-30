@@ -1,78 +1,128 @@
 """# lucidium.memory.buffer
 
-Defines structure and functionality of experience/memory buffer.
+Standard experience replay buffer implementation.
 """
 
-__all__ = ["ExperienceBuffer"]
+__all__ = ["ExperienceReplayBuffer"]
 
 from collections                import deque
+from logging                    import Logger
 from random                     import sample
-from typing                     import Dict, List
+from typing                     import Iterator, List, Optional
 
-from lucidium.memory.experience import Experience
+from lucidium.memory.transition import Transition
+from lucidium.utilities         import get_child
 
-class ExperienceBuffer():
-    """# Experience Buffer.
+class ExperienceReplayBuffer():
+    """# Experience Replay Buffer.
     
-    Circular buffer for storing and retrieving experiences for learning and discovery.
-    
-    Provides efficient storage and retrieval methods for experience-based learning and pattern 
-    mining operations.
+    Cyclic buffer of bounded size that holds transitions observed [recently] by an agent.
     """
     
     def __init__(self,
-        capacity:   int =   10000
+        capacity:   int =   1e6,
+        batch_size: int =   128
     ):
-        """# Instantiate Experience Buffer.
+        """# Instantiate Experience Replay Bufer.
 
         ## Args:
-            * capacity  (int, optional):    Maximum experience capacity. Defaults to 10000.
+            * capacity      (int):  Maximum capacity of buffer. Defaults to 1_000_000.
+            * batch_size    (int):  Size of batches that will be sampled from buffer. Defaults to 
+                                    128.
         """
-        # Define capacity.
-        self._capacity_:        int =                   capacity
+        # Initialize logger.
+        self.__logger__:    Logger =    get_child("replay-buffer")
         
         # Initialize buffer.
-        self._buffer_:          deque =                 deque(maxlen = self._capacity_)
+        self._buffer_:      deque =     deque(maxlen = int(capacity))
         
+        # Define properties.
+        self._capacity_:    int =       capacity
+        self._batch_size_:  int =       batch_size
+        
+        # Debug initialization.
+        self.__logger__.debug(f"Initialized experience replay buffer ({locals()})")
+        
+    # PROPERTIES ===================================================================================
+    
+    @property
+    def batch_size(self) -> int:
+        """# Sampling Batch Size
+        
+        Size of batches that will be sampled from buffer.
+        """
+        return self._batch_size_
+    
+    @property
+    def capacity(self) -> int:
+        """# Buffer Capacity.
+
+        Maximum capacity of buffer.
+        """
+        return self._capacity_
+    
+    @property
+    def is_ready_for_sampling(self) -> bool:
+        """# (Buffer) is Ready for Sampling?
+        
+        True if buffer contains at least `batch_size` transitions.
+        """
+        return self.size >= self.batch_size
+    
+    @property
+    def size(self) -> int:
+        """# Current Buffer Size"""
+        return len(self._buffer_)
+    
     # METHODS ======================================================================================
     
-    def add(self,
-        experience: Experience
-    ) -> None:
-        """# Add Experience.
-
-        ## Args:
-            * experience    (Experience):   Experience data being added.
-        """
-        # Add experience to buffer.
-        self._buffer_.append(experience)
-        
     def clear(self) -> None:
-        """# Clear Buffer."""
+        """# Clear Buffer.
+        
+        Clear all current transitions from buffer.
+        """
         self._buffer_.clear()
         
-    def get_random_batch(self,
-        batch_size: int
-    ) -> List[Experience]:
-        """# Get Random Batch of Experiences.
+    def push(self, *args) -> None:
+        """# Push Transition to Buffer.
 
         ## Args:
-            * batch_size    (int):  Number of experiences to fetch.
-
-        ## Returns:
-            * List[Experience]: Batch of random experiences.
+            * old_state:    Environment state prior to agent's action.
+            * action:       Action submitted by agent.
+            * reward:       Reward yielded/penalty incurred by agent's action.
+            * new_state:    Environment state after agent submitted action.
+            * done:         Flag to indicate if new state is terminal.
         """
-        return sample(list(self._buffer_), min(batch_size, len(self._buffer_)))
+        self._buffer_.append(Transition(*args))
         
-    def get_recent(self,
-        n:  int
-    ) -> List[Experience]:
-        """# Get Recent Experiences.
+    def sample(self,
+        batch_size: Optional[int] = None
+    ) -> List[Transition]:
+        """# Sample Transitions.
 
         ## Args:
-            * n (int):  Number of recent experiences to fetch.
+            * batch_size (int): Quantity of transition samples. Defaults to batch size defined on 
+                                initialization.
 
         ## Returns:
-            * List[Experience]: Recent experiences.
+            * List[Transition]: Transition samples.
         """
-        return list(self._buffer_)[-min[n, len(self._buffer_)]]
+        return sample(self._buffer_, self.batch_size if batch_size is None else batch_size)
+        
+    # DUNDERS ======================================================================================
+    
+    def __iter__(self) -> Iterator:
+        """# Experience Replay Buffer Iterable"""
+        return self._buffer_.copy().__iter__()
+    
+    def __len__(self) -> int:
+        """# Current Buffer Size"""
+        return self.size
+    
+    def __repr__(self) -> str:
+        """# Experience Replay Buffer Object Representation."""
+        return f"""<ExperienceReplayBuffer(size = {self.size}, capacity = {self.capacity})>"""
+    
+    def __str__(self) -> str:
+        """# Experience Replay Buffer String Representation."""
+        return f"""<ExperienceReplayBuffer(size = {self.size}, capacity = {self.capacity})>"""

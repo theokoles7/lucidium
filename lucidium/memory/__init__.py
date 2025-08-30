@@ -4,9 +4,9 @@ This package defines structures for storing memory of experiences.
 """
 
 __all__ =   [
-                "ExperienceBuffer",
-                "Experience"
+                "ExperienceReplayBuffer",
+                "Transition"
             ]
 
-from lucidium.memory.buffer     import ExperienceBuffer
-from lucidium.memory.experience import Experience
+from lucidium.memory.buffer     import ExperienceReplayBuffer
+from lucidium.memory.transition import Transition
