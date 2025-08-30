@@ -62,7 +62,7 @@ class Game():
                                                     **kwargs
                                                 )
         
-        # Load 
+        # Load agent.
         self._agent_:           Agent =         AGENT_REGISTRY.load(
                                                     name =              agent,
                                                     action_space =      self._environment_.action_space,
