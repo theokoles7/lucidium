@@ -8,7 +8,7 @@ Link to paper: https://arxiv.org/pdf/1312.5602
 __all__ = ["DeepQNetwork"]
 
 from logging                        import Logger
-from typing                         import Any, Dict, Optional, override
+from typing                         import Any, Dict, Literal, Optional, override
 
 from numpy.random                   import rand
 from torch                          import argmax, as_tensor, float32, load, long, manual_seed, no_grad, save, Tensor
@@ -20,7 +20,7 @@ from lucidium.agents.__base__       import Agent
 from lucidium.agents.components     import QNetwork
 from lucidium.agents.dqn.__args__   import register_dqn_parser
 from lucidium.agents.dqn.__main__   import main
-from lucidium.memory                import ExperienceReplayBuffer
+from lucidium.memory.replay         import ExperienceReplayBuffer
 from lucidium.registries            import register_agent
 from lucidium.spaces                import Space
 from lucidium.utilities             import get_child
@@ -48,21 +48,23 @@ class DeepQNetwork(Agent):
         observation_space:      Space,
         
         # Hyperparameters.
-        learning_rate:          float = 1e-3,
-        discount_rate:          float = 0.99,   # (gamma)
-        exploration_rate:       float = 1.0,    # (epsilon)
-        exploration_decay:      float = 0.99,
-        exploration_min:        float = 0.1,
-        target_tau:             float = 2e-3,
-        update_interval:        int =   4,
+        learning_rate:          float =                             1e-3,
+        discount_rate:          float =                             0.99,   # (gamma)
+        exploration_rate:       float =                             1.0,    # (epsilon)
+        exploration_decay:      float =                             0.99,
+        exploration_min:        float =                             0.1,
+        target_tau:             float =                             2e-3,
+        update_interval:        int =                               4,
         
         # Experience Replay Buffer.
-        replay_buffer_capacity: int =   1e6,
-        buffer_batch_size:      int =   64,
+        replay_buffer_capacity: int =                               1e6,
+        buffer_batch_size:      int =                               64,
+        replay_policy:          Literal["prioritized", "uniform"] = "uniform",
+        reaply_policy_kwargs:   Dict[str, Any] =                    None,
         
         # Seeding.
-        random_seed:            int =   42,
-        to_device:              str =   "cpu",
+        random_seed:            int =                               42,
+        to_device:              str =                               "cpu",
         **kwargs
     ):
         """# Instantiate Deep Q-Network Agent.
@@ -116,7 +118,9 @@ class DeepQNetwork(Agent):
         # Initialize experience replay buffer.
         self._replay_buffer_:       ExperienceReplayBuffer =    ExperienceReplayBuffer(
                                                                     capacity =      replay_buffer_capacity,
-                                                                    batch_size =    buffer_batch_size
+                                                                    batch_size =    buffer_batch_size,
+                                                                    policy =        replay_policy,
+                                                                    **(reaply_policy_kwargs or {})
                                                                 )
         
         # Define networks.
