@@ -8,9 +8,10 @@ Link to paper: https://arxiv.org/pdf/1312.5602
 __all__ = ["DeepQNetwork"]
 
 from logging                        import Logger
-from typing                         import Any, Dict, Literal, Optional, override
+from typing                         import Any, Dict, List, Literal, Optional, override, Union
 
 from numpy.random                   import rand
+from numpy.typing                   import NDArray
 from torch                          import argmax, as_tensor, float32, load, long, manual_seed, no_grad, save, Tensor
 from torch.nn                       import Module
 from torch.nn.functional            import smooth_l1_loss
@@ -171,7 +172,12 @@ class DeepQNetwork(Agent):
         
         Running statistics pertaining to agent's learning/performance.
         """
-        return  {}
+        return  {
+                    "step":             self._step_t_,
+                    "exploration_rate": self._exploration_rate_,
+                    "buffer_size":      self._replay_buffer_.size,
+                    "buffer_ready":     self._replay_buffer_.is_ready_for_sampling
+        }
         
     # METHODS ======================================================================================
     
@@ -311,6 +317,9 @@ class DeepQNetwork(Agent):
         # Update observation metrics.
         observation_metrics["exploration_rate"] = self._exploration_rate_
         
+        # Update replay buffer sampling policy schedule.
+        self._replay_buffer_.step()
+        
         # Provide observatino metrics.
         return  observation_metrics
     
@@ -392,7 +401,24 @@ class DeepQNetwork(Agent):
         if not self._replay_buffer_.is_ready_for_sampling: return None
         
         # Sample a batch from experience replay buffer.
-        old_states, actions, rewards, new_states, dones = self._replay_buffer_.sample()
+        transitions, indices, weights = self._replay_buffer_.sample()
+        
+        # Initialize lists for storing transition components.
+        old_states: List[NDArray] =             []
+        actions:    List[Union[NDArray, int]] = []
+        rewards:    List[float] =               []
+        new_states: List[NDArray] =             []
+        dones:      List[bool] =                []
+        
+        # For each transition sampled...
+        for transition in transitions:
+            
+            # Extract components.
+            old_states.append(transition.state)
+            actions.append(transition.action)
+            rewards.append(transition.reward)
+            new_states.append(transition.next_state)
+            dones.append(transition.done)
         
         # Convert to Tensors.
         old_states: Tensor =    as_tensor(old_states, device = self._device_, dtype = float32)
@@ -404,7 +430,7 @@ class DeepQNetwork(Agent):
         # Get Q(s, a) from online network.
         q_sa:       Tensor =    self._q_network_(old_states).gather(1, actions).squeeze(1)
         
-        # With no gradient udpate...
+        # With no gradient update...
         with no_grad():
             
             # Get max value from target network.
@@ -415,6 +441,13 @@ class DeepQNetwork(Agent):
             
         # Compute Huber loss between current Q and target.
         loss:       Tensor =    smooth_l1_loss(input = q_sa, target = y)
+        
+        # If weights were provided...
+        if weights is not None:
+            
+            # Update weights..
+            weights:    Tensor =    as_tensor(weights, device = self._device_, dtype = float32)
+            loss:       Tensor =    (loss * weights).mean()
         
         # Reset gradients.
         self._optimizer_.zero_grad(set_to_none = True)
@@ -431,6 +464,12 @@ class DeepQNetwork(Agent):
             online_network =    self._q_network_,
             tau =               self._target_tau_
         )
+        
+        # If using prioritized replay, update priorities with TD errors
+        if indices is not None: self._replay_buffer_.update_priorities(
+                                    indices =   indices,
+                                    td_errors = abs(q_sa - y).detach().cpu().numpy()
+                                )
         
         # Provide computed loss.
         return float(loss.item())
