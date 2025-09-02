@@ -165,10 +165,22 @@ def register_grid_world_parser(
     _rewards_.add_argument(
         "--coin-reward",
         dest =      "coin_reward",
-        type =     float,
+        type =      float,
         default =   0.5,
         help =      """Reward received in the case that the agent lands on a coin square. Defaults 
                     to +0.5."""
+    )
+    
+    # INTERACTION ==================================================================================
+    _interaction_:  _ArgumentGroup =    _parser_.add_argument_group("Interaction")
+    
+    _interaction_.add_argument(
+        "--observation-mode",
+        dest =      "observation_mode",
+        type =      str,
+        choices =   ["index", "coordinate", "one-hot"],
+        default =   "index",
+        help =      """Format of observations being provided to agent. Defaults to "index"."""
     )
 
     # +============================================================================================+

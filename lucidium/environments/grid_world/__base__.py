@@ -47,6 +47,9 @@ class GridWorld(Environment):
         collision_penalty:  Optional[float] =                               -0.1,
         loss_penalty:       Optional[float] =                               -1.0,
         coin_reward:        Optional[float] =                                0.5,
+        
+        # Interaction.
+        observation_mode:   Literal["index", "coordinate", "one-hot"] =     "index",
         **kwargs
     ):
         """# Instantiate Grid World Environment.
