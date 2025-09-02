@@ -210,9 +210,9 @@ class Game():
         
         # Define step statistics and prompt agent observation.
         self._step_statistics_: Dict[str, Any] =    {
-                                                        "old_state":            self._current_state_,
+                                                        "old_state":            str(self._current_state_)[:20],
                                                         "action":               action,
-                                                        "new_state":            new_state,
+                                                        "new_state":            str(new_state)[:20],
                                                         "reward":               reward,
                                                         "done":                 done,
                                                         "agent_observation":    self._agent_.observe(

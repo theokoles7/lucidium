@@ -12,7 +12,7 @@ from typing                         import Any, Dict, List, Literal, Optional, o
 
 from numpy.random                   import rand
 from numpy.typing                   import NDArray
-from torch                          import argmax, as_tensor, float32, load, long, manual_seed, no_grad, save, Tensor
+from torch                          import argmax, float32, load, long, manual_seed, no_grad, save, stack, tensor, Tensor
 from torch.nn                       import Module
 from torch.nn.functional            import smooth_l1_loss
 from torch.optim                    import Adam
@@ -194,7 +194,7 @@ class DeepQNetwork(Agent):
             * int:  Agent's chosen action.
         """
         # Cache current state.
-        self._current_state_:   int =   state
+        self._current_state_:   Tensor =    state
         
         # If exploration rate (epsilon) is higher than a randomly chosen value...
         if rand() < self._exploration_rate_:
@@ -209,7 +209,7 @@ class DeepQNetwork(Agent):
         else:
             
             # Convert state to Tensor.
-            if not isinstance(state, Tensor): state = as_tensor(state, dtype = float32)
+            if not isinstance(state, Tensor): state = tensor(state, dtype = float32)
             
             # Ensure batch dimension.
             if state.dim() == 0: state = state.view(1, 1)
@@ -421,11 +421,11 @@ class DeepQNetwork(Agent):
             dones.append(transition.done)
         
         # Convert to Tensors.
-        old_states: Tensor =    as_tensor(old_states, device = self._device_, dtype = float32)
-        actions:    Tensor =    as_tensor(actions,    device = self._device_, dtype = long).view(-1, 1)
-        rewards:    Tensor =    as_tensor(rewards,    device = self._device_, dtype = float32).view(-1)
-        new_states: Tensor =    as_tensor(new_states, device = self._device_, dtype = float32)
-        dones:      Tensor =    as_tensor(dones,      device = self._device_, dtype = float32).view(-1)
+        old_states: Tensor =    stack(old_states).to(self._device_).float()
+        actions:    Tensor =    tensor(actions,    device = self._device_, dtype = long).view(-1, 1)
+        rewards:    Tensor =    tensor(rewards,    device = self._device_, dtype = float32).view(-1)
+        new_states: Tensor =    stack(new_states).to(self._device_).float()
+        dones:      Tensor =    tensor(dones,      device = self._device_, dtype = float32).view(-1)
         
         # Get Q(s, a) from online network.
         q_sa:       Tensor =    self._q_network_(old_states).gather(1, actions).squeeze(1)
@@ -446,7 +446,7 @@ class DeepQNetwork(Agent):
         if weights is not None:
             
             # Update weights..
-            weights:    Tensor =    as_tensor(weights, device = self._device_, dtype = float32)
+            weights:    Tensor =    tensor(weights, device = self._device_, dtype = float32)
             loss:       Tensor =    (loss * weights).mean()
         
         # Reset gradients.
