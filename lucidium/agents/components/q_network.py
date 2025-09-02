@@ -43,7 +43,7 @@ class QNetwork(Module):
         
         # Define layers.
         self._fc_1_:        Linear =    Linear(in_features = observation_size,    out_features = layer_1_output_size)
-        self._fc_2_:        Linear =    Linear(in_features = layer_1_output_size, out_features = layer_2_output_size),
+        self._fc_2_:        Linear =    Linear(in_features = layer_1_output_size, out_features = layer_2_output_size)
         self._fc_3_:        Linear =    Linear(in_features = layer_2_output_size, out_features = action_size)
         
         # Debug initialization.

@@ -5,8 +5,10 @@ Defines the basic grid component of Grid World environment.
 
 __all__ = ["Grid"]
 
-from typing                                                 import Any, Dict, List, Optional, Set, Tuple
+from typing                                                 import Any, Dict, List, Literal, Optional, Set, Tuple, Union
 
+from torch                                                  import tensor, Tensor
+from torch.nn.functional                                    import one_hot
 from termcolor                                              import colored
 
 from lucidium.environments.grid_world.components.squares    import *
@@ -37,6 +39,9 @@ class Grid():
         collision_penalty:  Optional[float] =                               -0.1,
         loss_penalty:       Optional[float] =                               -1.0,
         coin_reward:        Optional[float] =                                0.5,
+        
+        # Interaction.
+        observation_mode:   Literal["index", "coordinate", "one-hot"] =     "index",
         **kwargs
     ):
         """# Instantiate (Grid World) Grid.
@@ -122,6 +127,9 @@ class Grid():
         # Set agent location to start square.
         self._agent_:               Tuple[int, int] =                   self._start_
         
+        # Define observation mode.
+        self._observation_mode_:    str =                               observation_mode
+        
         # Validate parameters.
         self.__post_init__()
         
@@ -174,6 +182,9 @@ class Grid():
             
             # Update set of coordinates seen.
             seen |= coordinates
+            
+        # Validate observation mode.
+        assert self._observation_mode_ in ["index", "coordinate", "one-hot"]
             
     # PROPERTIES ===================================================================================
     
@@ -343,7 +354,7 @@ class Grid():
                 self._collisions_ += 1
                 
                 # Assign penalty for boundary collision.
-                return  self._coordinate_to_index_(coordinate = self._agent_), self.collision_penalty, False, {"event": "collided with boundary"}
+                return  self._encode_observation_(observation = self._agent_), self.collision_penalty, False, {"event": "collided with boundary"}
             
             # Otherwise, map is wrapped, so we should module new location.
             new_location: Tuple[int, int] = self._modulate_(coordinate = new_location)
@@ -358,7 +369,7 @@ class Grid():
         self._agent_:   Tuple[int, int] =   new_state if new_state is not None else self._agent_
         
         # Provide result of agent's action.
-        return self._coordinate_to_index_(coordinate = self._agent_), value, done, metadata
+        return self._encode_observation_(observation = self._agent_), value, done, metadata
     
     def reset(self) -> int:
         """# Reset (Grid).
@@ -384,7 +395,7 @@ class Grid():
         self._portals_activated_:   int =                   0
         
         # Provide agent's starting location/state.
-        return self._coordinate_to_index_(coordinate = self._agent_)
+        return self._encode_observation_(observation = self._agent_)
     
     # HELPERS ======================================================================================
     
@@ -400,6 +411,36 @@ class Grid():
             * int:  Index equivalent of coordinate.
         """
         return coordinate[0] * self.columns + coordinate[1]
+    
+    def _encode_observation_(self,
+        observation:    Tuple[int, int]
+    ) -> Union[int, Tuple[int, int], Tensor]:
+        """# Encode Observation.
+        
+        Convert coordinate observation to proper observation format.
+
+        ## Args:
+            * observation   (Tuple[int, int]):  Coordinate observation being encoded.
+
+        ## Returns:
+            * Union[int, Tuple[int, int], Tensor]: Observation in proper format.
+        """
+        # Match observation mode.
+        match self._observation_mode_:
+            
+            # Index.
+            case "index":       return self._coordinate_to_index_(coordinate = observation)
+            
+            # Coordinate.
+            case "coordinate":  return observation
+            
+            # One-hot.
+            case "one-hot":     return  one_hot(
+                                            tensor(self._coordinate_to_index_(
+                                                coordinate = observation
+                                            )),
+                                            num_classes = self.rows * self.columns
+                                        )
     
     def _get_square_(self,
         coordinate: Tuple[int, int]
