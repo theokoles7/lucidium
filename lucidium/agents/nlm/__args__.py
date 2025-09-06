@@ -5,7 +5,9 @@ Argument definitions and parsing for Neural Logic Machine agent.
 
 __all__ = ["register_nlm_parser"]
 
-from argparse   import _ArgumentGroup, ArgumentParser, _SubParsersAction
+from argparse               import _ArgumentGroup, ArgumentParser, _SubParsersAction
+
+from lucidium.registries    import AGENT_COMMAND_REGISTRY
 
 def register_nlm_parser(
     parent_subparser:   _SubParsersAction
@@ -110,3 +112,6 @@ def register_nlm_parser(
     # +============================================================================================+
     # | END ARGUMENTS                                                                              |
     # +============================================================================================+
+    
+    # Register commands.
+    AGENT_COMMAND_REGISTRY.register_parsers(subparser = _subparser_)

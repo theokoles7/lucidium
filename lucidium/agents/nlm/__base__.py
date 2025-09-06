@@ -8,21 +8,23 @@ Source: https://github.com/google/neural-logic-machines
 """
 
 from logging                        import Logger
-from typing                         import Any, List, override, Optional, Tuple
+from typing                         import Any, Dict, List, override, Optional, Tuple
 
 from torch                          import cat, load, no_grad, save, Tensor
 from torch.nn                       import Module, ModuleList
 
 from lucidium.agents.__base__       import Agent
 from lucidium.agents.nlm.__args__   import register_nlm_parser
+from lucidium.agents.nlm.__main__   import main
 from lucidium.agents.nlm.layers     import LogicLayer
 from lucidium.registries            import register_agent
 from lucidium.utilities.logger      import get_child
 
 @register_agent(
-    name =      "nlm",
-    tags =      ["neuro-symbolic", "value-based", "model-free"],
-    parser =    register_nlm_parser
+    name =          "nlm",
+    tags =          ["neuro-symbolic", "value-based", "model-free"],
+    entry_point =   main,
+    parser =        register_nlm_parser
 )
 class NeuralLogicMachine(Module, Agent):
     """# Neural Logic Machine
@@ -171,6 +173,15 @@ class NeuralLogicMachine(Module, Agent):
         """
         return self._layers_
     
+    @override
+    @property
+    def name(self) -> str:
+        """# (NLM) Name
+
+        NLM agent's proper name.
+        """
+        return "Neural Logic Machine"
+    
     @property
     def output_dimensions(self) -> List[int]:
         """# Output Dimensions (List[int])
@@ -194,6 +205,15 @@ class NeuralLogicMachine(Module, Agent):
         Whether residual connections are used in the Neural Logic Machine.
         """
         return self._residual_
+    
+    @override
+    @property
+    def statistics(self) -> Dict[str, Any]:
+        """# (NLM) Statistics
+
+        Statistics pertaining to NLM performance/status.
+        """
+        return  {}
         
     # METHODS ======================================================================================
     
