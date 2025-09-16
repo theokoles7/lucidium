@@ -97,7 +97,7 @@ class Discrete(Space):
         ## Returns:
             * bool: True if x ∈ S.
         """
-        return isinstance(x, int) and self._start_ <= x < (self._start_ + self._n_)
+        return issubdtype(x, integer) and self._start_ <= x < (self._start_ + self._n_)
     
     def sample(self,
         mask:           Optional[Mask] =    None,
