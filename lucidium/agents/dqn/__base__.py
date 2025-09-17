@@ -2,7 +2,6 @@
 
 Implementation of Deep Q-Network (DQN) agent based on "Playing Atari with Deep Reinforcement 
 Learning" by Mnih et al. (2013).
-Link to paper: https://arxiv.org/pdf/1312.5602
 """
 
 __all__ = ["DeepQNetwork"]
@@ -18,21 +17,21 @@ from torch.nn.functional            import smooth_l1_loss
 from torch.optim                    import Adam
 
 from lucidium.agents.__base__       import Agent
-from lucidium.agents.components     import QNetwork
 from lucidium.agents.dqn.__args__   import register_dqn_parser
 from lucidium.agents.dqn.__main__   import main
-from lucidium.memory.replay         import ExperienceReplayBuffer
+from lucidium.memory                import ExperienceReplayBuffer
+from lucidium.neural                import QNetwork
 from lucidium.registries            import register_agent
 from lucidium.spaces                import Space
 from lucidium.utilities             import get_child
 
 @register_agent(
     name =          "dqn",
-    tags =          ["model-free", "gradient-free", "off-policy", "deep-rl"],
+    tags =          ["model-free", "value-based", "off-policy", "deep-rl"],
     entry_point =   main,
     parser =        register_dqn_parser
 )
-class DeepQNetwork(Agent):
+class DQN(Agent):
     """# Deep Q-Network (DQN) Agent.
     
     Deep Q-Network is an off-policy, model-free reinforcement learning agent that utilizes a deep 
@@ -50,8 +49,8 @@ class DeepQNetwork(Agent):
         
         # Hyperparameters.
         learning_rate:          float =                             1e-3,
-        discount_rate:          float =                             0.99,   # (gamma)
-        exploration_rate:       float =                             1.0,    # (epsilon)
+        discount_rate:          float =                             0.99,
+        exploration_rate:       float =                             1.0,
         exploration_decay:      float =                             0.99,
         exploration_min:        float =                             0.1,
         target_tau:             float =                             2e-3,
@@ -126,16 +125,14 @@ class DeepQNetwork(Agent):
         
         # Define networks.
         self._q_network_:           QNetwork =                  QNetwork(
-                                                                    observation_size =  observation_space.n,
-                                                                    action_size =       action_space.n,
-                                                                    random_seed =       random_seed
+                                                                    observation_size =  observation_space,
+                                                                    action_size =       action_space,
                                                                 ).to(to_device)
         
         # Define networks.
         self._target_q_network_:    QNetwork =                  QNetwork(
-                                                                    observation_size =  observation_space.n,
-                                                                    action_size =       action_space.n,
-                                                                    random_seed =       random_seed
+                                                                    observation_size =  observation_space,
+                                                                    action_size =       action_space,
                                                                 ).to(to_device)
         
         # Hard sync target network.

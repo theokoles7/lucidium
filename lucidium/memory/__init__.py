@@ -4,7 +4,18 @@ This package defines structures for storing memory of experiences.
 """
 
 __all__ =   [
-                "replay"
+                # Replay.
+                "Batch",
+                "ExperienceReplayBuffer",
+                "Transition"
+                
+                # Policies.
+                "PrioritizedSampling",
+                "SamplingPolicy"
+                "UniformSampling",
+                
+                # Utilities.
+                "SumTree"
             ]
 
-from lucidium.memory    import replay
+from lucidium.memory.replay import *
