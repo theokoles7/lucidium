@@ -3,6 +3,9 @@ __pycache__
 build
 *.egg-info
 
+# Datasets.
+datasets
+
 # I/O files.
 input
 output

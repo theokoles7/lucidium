@@ -1,4 +1,4 @@
-[lucidium](https://github.com/theokoles7/lucidium/blob/main/README.md) / [documentation](https://github.com/theokoles7/lucidium/blob/main/documentation/README.md) / [agents](../README.md) / dqn
+[lucidium](https://github.com/theokoles7/lucidium/blob/main/README.md) / [documentation](../../../documentation/README.md) / [agents](../README.md) / dqn
 
 # Deep Q-Network (DQN)
 
@@ -49,5 +49,11 @@ The target network update frequency determines how often the weights of the targ
 
 ## References
 
-1. [Mnih, Kavukcuoglu, et al. "Playing Atari with Deep Reinforcement Learning." arXiv preprint arXiv:1312.5602 (2013).](../../../assets/references/Playing-Atari-with-Deep-Reinforcement-Learning_Mnih_2013.pdf)
-2. [Mnih, Volodymyr, et al. "Human-level control through deep reinforcement learning." Nature 518.7540 (2015): 529-533.](../../../assets/references/Human-level-Control-through-Deep-Reinforcement-Learning_Mnih_2015.pdf)
+### Papers
+
+1. [*Playing Atari with Deep Reinforcement Learning* (Mnih et al., 2013)](https://arxiv.org/pdf/1312.05602)
+2. [*Human-level Control through Deep Reinforcement Learning* (Mnih et al., 2015)](https://training.incf.org/sites/default/files/2023-05/Human-level%20control%20through%20deep%20reinforcement%20learning.pdf)
+
+### Code
+
+* [`stablebaselines3`](https://github.com/DLR-RM/stable-baselines3/blob/master/stable_baselines3/dqn/dqn.py)

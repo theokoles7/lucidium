@@ -60,7 +60,8 @@ setup(
                                         "numpy",
                                         "pytest",
                                         "termcolor",
-                                        "torch"
+                                        "torch",
+                                        "torchvision"
                                     ],
     entry_points =                  {
                                         "console_scripts":  [
