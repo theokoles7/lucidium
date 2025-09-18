@@ -27,3 +27,9 @@ class Batch():
     transitions:    List[Transition]
     indices:        Optional[NDArray] = None
     importance:     Optional[NDArray] = None
+    
+    # DUNDERS ======================================================================================
+    
+    def __len__(self) -> int:
+        """# Length of Transition Batch."""
+        return len(self.transitions)

@@ -7,11 +7,11 @@ __all__ =   [
                 # Core.
                 "Batch",
                 "ExperienceReplayBuffer",
-                "Transition"
+                "Transition",
                 
                 # Policies.
                 "PrioritizedSampling",
-                "SamplingPolicy"
+                "SamplingPolicy",
                 "UniformSampling",
                 
                 # Utilities.

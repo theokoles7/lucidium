@@ -11,6 +11,7 @@ from typing                                 import Any, Iterable, Iterator, List
 
 from numpy.typing                           import NDArray
 
+from lucidium.memory.replay.core.batch      import Batch
 from lucidium.memory.replay.core.transition import Transition
 from lucidium.memory.replay.policy          import *
 from lucidium.utilities                     import get_child
@@ -50,6 +51,9 @@ class ExperienceReplayBuffer():
                                                     transitions (ensures they are able to be sampled 
                                                     soon after insertion).
         """
+        # Ensure that capacity is positive.
+        if capacity <= 0: raise ValueError(f"Capacity expected to be positive integer, got {capacity}")
+        
         # Initialize logger.
         self.__logger__:    Logger =                        get_child("replay-buffer")
         
@@ -127,6 +131,9 @@ class ExperienceReplayBuffer():
         ## Returns:
         * int:  Index of transition written to buffer.
         """
+        # Validate arguments.
+        assert len(args) == 5, f"Transition expects 5 arguments, got {len(args)}"
+        
         # Record current index.
         index:  int =   self._head_
         
@@ -145,26 +152,27 @@ class ExperienceReplayBuffer():
         
     def sample(self,
         batch_size: Optional[int] = None
-    ) -> Tuple[List[Transition], NDArray, Optional[NDArray]]:
+    ) -> Batch:
         """# Sample Transitions.
 
         ## Args:
             * batch_size (int): Quantity of transition samples. Defaults to batch size defined on 
                                 initialization.
 
-        ## Returns:
-        * transitions   (List[Transition]): Transition samples.
-        * indices       (NDArray):          Array of sample indices.
-        * weights       (NDArray | None):   Priority weights.
+        ## Returns: Transistions batch containing:
+            * transitions   (List[Transition]): Transition samples.
+            * indices       (NDArray):          Array of sample indices.
+            * weights       (NDArray | None):   Priority weights.
         """
         # Report error if buffer is empty.
-        if self._size_ == 0: raise ValueError("Cannot sample from an empty buffer.")
+        if self._size_ < self._batch_size_:
+            raise RuntimeError(f"Buffer is not ready for sampling; Size = {self._size_} < Batch Size = {self._batch_size_}.")
         
         # Determine batch size.
         B:              int =               self._batch_size_ if batch_size is None else int(batch_size)
         
         # Delegate index selection to policy.
-        indices, weights =  self._policy_.sample(range = self._size_, batch_size = B)
+        indices, weights =  self._policy_.sample(sample_range = self._size_, batch_size = B)
         
         # Initialize list of transition samples.
         transitions:    List[Transition] =  []
@@ -173,7 +181,7 @@ class ExperienceReplayBuffer():
         for i in indices: transitions.append(self._buffer_[int(i)])
         
         # Return transition samples and their priority weights.
-        return transitions, indices, weights
+        return Batch(transitions, indices, weights)
     
     def step(self) -> None:
         """# Step.
@@ -220,6 +228,19 @@ class ExperienceReplayBuffer():
         self._policy_.reset(capacity = self._capacity_)
         
     # DUNDERS ======================================================================================
+    
+    def __getitem__(self,
+        index:  int
+    ) -> Transition:
+        """# Fetch Transition from Buffer.
+
+        ## Args:
+            * index (int):  Index of transition being fetched.
+
+        ## Returns:
+            * Transition:   Transition at given index.
+        """
+        return self._buffer_[index]
     
     def __iter__(self) -> Iterator:
         """# Experience Replay Buffer Iterable"""

@@ -140,7 +140,7 @@ class SumTree():
             self._sum_tree_[leaf_index] =   self._sum_tree_[2 * leaf_index] + self._sum_tree_[2 * leaf_index + 1]
             
             # Update parent minimum.
-            self._min_tree_[leaf_index] =   min(self._sum_tree_[2 * leaf_index], self._sum_tree_[2 * leaf_index + 1])
+            self._min_tree_[leaf_index] =   min(self._min_tree_[2 * leaf_index], self._min_tree_[2 * leaf_index + 1])
             
             # Walk to parent.
             leaf_index //= 2

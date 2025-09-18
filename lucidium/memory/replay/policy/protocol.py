@@ -57,15 +57,15 @@ class SamplingPolicy(Protocol):
         ...
     
     def sample(self,
-        range:      int,
-        batch_size: int
+        sample_range:   int,
+        batch_size:     int
     ) -> Tuple[NDArray, Optional[NDArray]]:
         r"""# Sample.
         
         Sample a batch of indices and priority weights.
         
         ## Args:
-            * :param:`range`    (int):      Current number of valid transitions in the buffer 
+            * :param:`sample_range` (int):      Current number of valid transitions in the buffer 
                                             (i.e., `len(buffer)`).
             * :param:`batch_size`   (int):  Number of samples to draw.
             

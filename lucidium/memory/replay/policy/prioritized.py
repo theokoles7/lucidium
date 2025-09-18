@@ -7,6 +7,7 @@ __all__ = ["PrioritizedSampling"]
 
 from random                                     import randrange, uniform
 from typing                                     import Iterable, List, Optional, Tuple
+from warnings                                   import warn
 
 from numpy                                      import asarray, float32, int32, ones, zeros
 from numpy.random                               import randint
@@ -33,7 +34,7 @@ class PrioritizedSampling(SamplingPolicy):
         beta_end:           float = 1.0,
         beta_anneal_steps:  int =   200000,
         epsilon:            float = 1e-6,
-        initial_priority:   float = 1.0
+        default_priority:   float = 1.0
     ):
         r"""# Instantiate Prioritized Sampling Policy.
         
@@ -49,11 +50,12 @@ class PrioritizedSampling(SamplingPolicy):
             * :param:`beta_anneal_steps`    (int):      Number of calls to `step()` before beta 
                                                         reaches `beta_end`.
             * :param:`epsilon`              (float):    Small constant to avoid zero probabilites.
-            * :param:`initial_priority`     (float):    Default priority value assigned to new 
+            * :param:`default_priority`     (float):    Default priority value assigned to new 
                                                         transitions (ensures they are able to be 
                                                         sampled soon after insertion).
         """
         # Validate arguments.
+        assert capacity > 0,                f"Capacity must be greater than zero, got {capacity}"
         assert alpha >= 0.0,                f"Alpha parameter must be >= 0, got {alpha}"
         assert 0.0 <= beta_start <= 1.0,    f"Beta start must be in range [0.0, 1.0], got {beta_start}"
         assert 0.0 <= beta_end <= 1.0,      f"Beta end must be in range [0.0, 1.0], got {beta_end}"
@@ -67,7 +69,7 @@ class PrioritizedSampling(SamplingPolicy):
         self._beta_anneal_steps_:   int =       max(1, int(beta_anneal_steps))
         self._anneal_step_:         int =       0
         self._epsilon_:             float =     float(epsilon)
-        self._initial_priority_:    float =     float(initial_priority)
+        self._default_priority_:    float =     float(default_priority)
         
         # Initialize segment tree to support O(log N) sampling/updates.
         self._tree_:                SumTree =   SumTree(capacity = self._capacity_)
@@ -75,7 +77,67 @@ class PrioritizedSampling(SamplingPolicy):
         # Initialize array to track priorities.
         self._priorities_:          NDArray =   zeros(self._capacity_, dtype = float32)
         
+    # PROPERTIES ===================================================================================
+    
+    @property
+    def alpha(self) -> float:
+        """# Policy Prioritization Degree."""
+        return self._alpha_
+    
+    @property
+    def beta(self) -> float:
+        """# Policy Sampling Correction."""
+        return self._beta_
+    
+    @property
+    def beta_anneal_steps(self) -> int:
+        """# Steps for Beta Annealing."""
+        return self._beta_anneal_steps_
+    
+    @property
+    def beta_end(self) -> float:
+        """# Maximum Sampling Correction."""
+        return self._beta_end_
+    
+    @property
+    def beta_start(self) -> float:
+        """# Initial Sampling Correction."""
+        return self._beta_start_
+    
+    @property
+    def capacity(self) -> int:
+        """# Policy Capacity."""
+        return self._capacity_
+    
+    @property
+    def default_priority(self) -> float:
+        """# Policy Default Priority."""
+        return self._default_priority_
+    
+    @property
+    def epsilon(self) -> float:
+        """# Policy Constant."""
+        return self._epsilon_
+    
+    @property
+    def tree(self) -> SumTree:
+        """# Policy Sum Tree."""
+        return self._tree_
+        
     # METHODS ======================================================================================
+    
+    def get_priority(self,
+        index:  int
+    ) -> float:
+        """# Fetch Priority.
+        
+        ## Args:
+            * index (int):  Index ofr priority being fetched.
+            
+        ## Returns:
+            * float:    Priority at requested index.
+        """
+        return self._priorities_[index]
     
     def on_add(self,
         index:      int,
@@ -94,7 +156,7 @@ class PrioritizedSampling(SamplingPolicy):
                                             default scheme.
         """
         # Determine priority assignment, in case one is not provided.
-        base:       float =         self._initial_priority_ if priority is None else float(priority)
+        base:       float =         self._default_priority_ if priority is None else float(priority)
         
         # Normalize priority.
         priority:   float =         (abs(base) + self._epsilon_) ** self._alpha_
@@ -123,19 +185,19 @@ class PrioritizedSampling(SamplingPolicy):
             beta_end =          self._beta_end_,
             beta_anneal_steps = self._beta_anneal_steps_,
             epsilon =           self._epsilon_,
-            initial_priority =  self._initial_priority_,
+            default_priority =  self._default_priority_,
         )
     
     def sample(self,
-        range:      int,
-        batch_size: int
+        sample_range:   int,
+        batch_size:     int
     ) -> Tuple[NDArray, Optional[NDArray]]:
         r"""# Sample.
         
         Sample a batch of indices and priority weights.
         
         ## Args:
-            * :param:`range`    (int):      Current number of valid transitions in the buffer 
+            * :param:`sample_range` (int):      Current number of valid transitions in the buffer 
                                             (i.e., `len(buffer)`).
             * :param:`batch_size`   (int):  Number of samples to draw.
             
@@ -146,7 +208,7 @@ class PrioritizedSampling(SamplingPolicy):
                             importance-sampling weights in ``[0, 1]``.
         """
         # Buffer cannot be sampled if it's empty.
-        if range <= 0: raise ValueError("Cannot sample from an empty buffer.")
+        if sample_range <= 0: raise RuntimeError("Cannot sample from an empty buffer.")
         
         # Extract total sum of current priorities.
         priority_sum:   float =     self._tree_.total
@@ -154,8 +216,11 @@ class PrioritizedSampling(SamplingPolicy):
         # If sum is zero or less...
         if priority_sum <= 0.0:
             
+            # Issue warning.
+            warn(f"Priority sum is no longer positive: sum = {priority_sum}; Defaulting to uniform sampling")
+            
             # Fall back to uniform sampling, as priorities are degenerate.
-            return  randint(0, range, size = batch_size, dtype = int32),\
+            return  randint(0, sample_range, size = batch_size, dtype = int32),\
                     ones(batch_size, dtype = float32)
             
         # Otherwise, determine segment size.
@@ -185,7 +250,7 @@ class PrioritizedSampling(SamplingPolicy):
             # During buffer warmup, valid_range < capacity (not all slots are filled). The sum-tree 
             # always covers full capacity, so we clamp indices that fall outside of the valid range 
             # by resampling uniformly with [0, valid_range).
-            if index >= range: index = randrange(range)
+            if index >= sample_range: index = randrange(sample_range)
             
             # Append the chosen index to the sample list.
             samples.append(index)
@@ -200,7 +265,7 @@ class PrioritizedSampling(SamplingPolicy):
         P_i:        NDArray =   p_i / (priority_sum + self._epsilon_)
         
         # Generate importance weights.
-        weights:    NDArray =   (float(range) * P_i) ** (-self._beta_)
+        weights:    NDArray =   (float(sample_range) * P_i) ** (-self._beta_)
         
         # Extract minimum priority.
         min_p:      float =     max(self._tree_.minimum, self._epsilon_)
@@ -209,7 +274,7 @@ class PrioritizedSampling(SamplingPolicy):
         min_P:      float =     min_p / (priority_sum + self._epsilon_)
         
         # Compute the maximum possible importance-sampling weight.
-        max_w:      float =     (float(range) * min_P) ** (-self._beta_)
+        max_w:      float =     (float(sample_range) * min_P) ** (-self._beta_)
         
         # Normalize weights.
         weights:    NDArray =   (weights / (max_w + self._epsilon_)).astype(float32)

@@ -27,8 +27,18 @@ class UniformSampling(SamplingPolicy):
         ## Args:
             * :param:`capacity` (int):  Maximum number of transitions the buffer can store.
         """
+        # Ensure that capacity is positive.
+        if capacity <= 0: raise ValueError(f"Capacity expected to be positive integer, got {capacity}")
+        
         # Define properties.
-        self._capacity_:    int =   capacity
+        self._capacity_:    int =   int(capacity)
+        
+    # PROPERTIES ===================================================================================
+    
+    @property
+    def capacity(self) -> int:
+        """# Policy Capacity."""
+        return self._capacity_
         
     # METHODS ======================================================================================
     
@@ -65,15 +75,15 @@ class UniformSampling(SamplingPolicy):
         self._capacity_:    int =   capacity
     
     def sample(self,
-        range:      int,
-        batch_size: int
+        sample_range:   int,
+        batch_size:     int
     ) -> Tuple[NDArray, Optional[NDArray]]:
         r"""# Sample.
         
         Sample a batch of indices and priority weights.
         
         ## Args:
-            * :param:`range`    (int):      Current number of valid transitions in the buffer 
+            * :param:`sample_range` (int):      Current number of valid transitions in the buffer 
                                             (i.e., `len(buffer)`).
             * :param:`batch_size`   (int):  Number of samples to draw.
             
@@ -84,10 +94,10 @@ class UniformSampling(SamplingPolicy):
                             importance-sampling weights in ``[0, 1]``.
         """
         # Buffer cannot be sampled if it's empty.
-        if range <= 0: raise ValueError("Cannot sample from an empty buffer.")
+        if sample_range <= 0: raise RuntimeError("Cannot sample from an empty buffer.")
         
         # Return sampling indices.
-        return randint(0, range, size = batch_size, dtype = int32), None
+        return randint(0, sample_range, size = batch_size, dtype = int32), None
     
     def step(self) -> None:
         r"""# Step.
