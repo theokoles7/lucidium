@@ -50,17 +50,17 @@ def register_sac_parser(
         dest =          "actor_hidden_dimension",
         type =          int,
         nargs =         "+",
-        default =       [256, 256],
-        help =          """Hidden layer sizes for actor network(s). Defaults to [256, 256]."""
+        default =       (256, 256),
+        help =          """Hidden layer sizes for actor network(s). Defaults to (256, 256)."""
     )
     
     _architecture_.add_argument(
         "--critic-hidden-dimension",
-        dest =          "critid_hidden_dimension",
+        dest =          "critic_hidden_dimension",
         type =          int,
         nargs =         "+",
-        default =       [256, 256],
-        help =          """Hidden layer sizes for critic network(s). Defaults to [256, 256]."""
+        default =       (256, 256),
+        help =          """Hidden layer sizes for critic network(s). Defaults to (256, 256)."""
     )
     
     _architecture_.add_argument(
@@ -68,8 +68,8 @@ def register_sac_parser(
         dest =          "value_hidden_dimension",
         type =          int,
         nargs =         "+",
-        default =       [256, 256],
-        help =          """Hidden layer sizes for value network(s). Defaults to [256, 256]."""
+        default =       (256, 256),
+        help =          """Hidden layer sizes for value network(s). Defaults to (256, 256)."""
     )
     
     # LEARNING RATE =======================================================

@@ -41,6 +41,7 @@ class PolicyNetwork(Module):
         log_std_upper:      float =     2.0,
         activation:         Callable =  relu,
         initial_weight:     float =     3e-3,
+        action_range:       float =     1.0,
         to_device:          device =    device("cpu")
     ):
         """# Instantiate Policy Network.
@@ -67,7 +68,7 @@ class PolicyNetwork(Module):
         self._device_:          device =    to_device
         
         # Define action parameters.
-        self._action_range_:    float =     10.0
+        self._action_range_:    float =     action_range
         self._action_quantity_: int =       action_dimension
         
         # Define log standard deviation range to avoid numerical issues (vanishing/exploding STD).
@@ -100,17 +101,13 @@ class PolicyNetwork(Module):
     
     def evaluate(self,
         state:      Tensor,
-        deterministic:  bool =  False,
-        epsilon:        float = 1e-6
+        epsilon:    float = 1e-6
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
         """# Evaluate Policy.
 
         ## Args:
-            * state         (Tensor):   Environment state on which policy will be evaluated.
-            * deterministic (bool):     If True, use the mean action (greedy). If False, sample with 
-                                        reparameterization for low-variance gradients. Defaults to 
-                                        False.
-            * epsilon       (float):    Small constant to stabilize. Defaults to 1e-6.
+            * state     (Tensor):   Environment state on which policy will be evaluated.
+            * epsilon   (float):    Small constant to stabilize. Defaults to 1e-6.
 
         ## Returns:
             * action:           Tensor [B, act_dim] - final action in environment scale.
@@ -125,24 +122,26 @@ class PolicyNetwork(Module):
         mean, log_std =         self.forward(state)
         
         # Compute log standard deviation.
-        std:        Tensor =    log_std.exp()
+        std:                Tensor =    log_std.exp()
         
         # Generate noise.
-        noise:      Tensor =    Normal(0, 1).sample(mean.shape)
+        noise:              Tensor =    Normal(0, 1).sample(mean.shape)
         
         # Reparameterization trick with tanh squashing.
-        action_0:   Tensor =    tanh(mean + std * noise.to(mean.device))
-        action:     Tensor =    self._action_range_ * action_0
+        action_0:           Tensor =    tanh(mean + std * noise.to(mean.device))
+        action:             Tensor =    self._action_range_ * action_0
         
-        # Compute log probability with tanh correction.
-        log_prob:   Tensor =    (
-                                    Normal(mean, std).log_prob(
-                                        mean + 
-                                        (std * noise.to(mean.device) if not deterministic else 0)
-                                    ) - 
-                                    log(1.0 - action_0.pow(2) + epsilon) - 
-                                    np_log(self._action_range_)
-                                ).sum(dim = -1, keepdim = True)
+        # Sample the pre-tanh action.
+        pre_tanh_action:    Tensor =    mean + std * noise.to(mean.device)
+        
+        # Apply tanh squashing.
+        tanh_action:        Tensor =    tanh(pre_tanh_action)
+        
+        # Compute log probability.
+        log_prob:           Tensor =    (
+                                            Normal(mean, std).log_prob(pre_tanh_action)
+                                            - log(1.0 - tanh_action.pow(2) + epsilon)
+                                        ).sum(dim = -1, keepdim = True)
         
         # Provide results.
         return action, log_prob, noise, mean, log_std

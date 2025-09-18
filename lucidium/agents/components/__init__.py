@@ -5,9 +5,7 @@ implementations.
 """
 
 __all__ =   [
-                "QNetwork",
                 "QTable"
             ]
 
-from lucidium.agents.components.q_network   import QNetwork
-from lucidium.agents.components.q_table     import QTable
+from lucidium.agents.components.q_table import QTable

@@ -19,6 +19,8 @@ def main(
     # Initialize logger.
     _logger_:   Logger =    get_child(logger_name =   "sac.main")
     
+    print(kwargs)
+    
     try:# Log for debugging.
         _logger_.debug(f"Dispatching command {agent_action}")
         

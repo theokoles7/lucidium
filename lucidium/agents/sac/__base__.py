@@ -6,10 +6,10 @@ Reinforcement Learning with a Stochastic Actor", by Haarnoja et. al. (2018).
 Link to paper: https://proceedings.mlr.press/v80/haarnoja18b/haarnoja18b.pdf
 """
 
-__all__ = ["SoftActorCritic"]
+__all__ = ["SAC"]
 
 from logging                            import Logger
-from typing                             import Any, Dict, List, Literal, override, Optional
+from typing                             import Any, Dict, override, Optional, Tuple, Union
 
 from numpy                              import array, float32, ndarray
 from numpy.typing                       import NDArray
@@ -33,7 +33,7 @@ from lucidium.utilities                 import get_child
     entry_point =   main,
     parser =        register_sac_parser
 )
-class SoftActorCritic(Agent):
+class SAC(Agent):
     """# Soft Actor-Critic (Agent)
 
     Implementation of Soft Actor-Critic, based on "Soft Actor-Critic: Off-Policy Maximum Entropy 
@@ -48,9 +48,9 @@ class SoftActorCritic(Agent):
         observation_space:          Space,
         
         # Network dimensions.
-        actor_hidden_dimension:     int =                           512,
-        critic_hidden_dimension:    int =                           512, 
-        value_hidden_dimension:     int =                           512,
+        actor_hidden_dimension:     Union[int, Tuple[int, ...]] =   (256, 256),
+        critic_hidden_dimension:    Union[int, Tuple[int, ...]] =   (256, 256), 
+        value_hidden_dimension:     Union[int, Tuple[int, ...]] =   (256, 256),
         
         # Learning.
         actor_lr:                   float =                         3e-4,
@@ -69,7 +69,7 @@ class SoftActorCritic(Agent):
         batch_size:                 int =                           128,
         gradient_steps:             int =                           1,
         exploration_steps:          int =                           0,
-        reward_scale:               float =                         10.0,
+        reward_scale:               float =                         1.0,
         
         # Hardware optimization.
         to_device:                  str =                           "auto",
@@ -83,12 +83,12 @@ class SoftActorCritic(Agent):
             * observation_space         (Space):            Observation space of environment.
             
         ## Network Dimensions:
-            * actor_hidden_dimension    (List[int]):        Size of actor network's hidden layer. 
-                                                            Defaults to 512.
-            * critic_hidden_dimension   (List[int]):        Size of critic network's hidden layer. 
-                                                            Defaults to 512.
-            * value_hidden_dimension    (List[int]):        Size of value network's hidden layer. 
-                                                            Defaults to 512.
+            * actor_hidden_dimension    (int | Tuple[int]): Size of actor network's hidden layer. 
+                                                            Defaults to (256, 256).
+            * critic_hidden_dimension   (int | Tuple[int]): Size of critic network's hidden layer. 
+                                                            Defaults to (256, 256).
+            * value_hidden_dimension    (int | Tuple[int]): Size of value network's hidden layer. 
+                                                            Defaults to (256, 256).
                                                             
         ## Learning Rates:
             * actor_lr                  (float):            Learning rate of actor network. Defaults 
@@ -121,18 +121,6 @@ class SoftActorCritic(Agent):
                                                             policy. Defaults to 0.
             * reward_scale              (float):            Reward scaling factor. Defaults to 10.0.
             
-        ## CAR (Conservative Advantage Regularization):
-            * car_enabled               (bool):             If true, conservative advantage 
-                                                            regularization will be utilized for 
-                                                            actor (policy) network. Defaults to 
-                                                            False.
-            * car_lambda                (float):            CAR penalty coefficient. Defaults to 
-                                                            0.0003.
-            * car_mode                  (str):              Either "batch" or "per_state". Defaults 
-                                                            to "per_state".
-            * car_k                     (int):              If "per_state', then k actions will be 
-                                                            sampled per state. Defaults to 5.
-            
         ## Hardware Optimization:
             * to_device                 (str):              Device to use. Defaults to "auto".
         """
@@ -159,6 +147,10 @@ class SoftActorCritic(Agent):
         self._gradient_steps_:          int =                       gradient_steps
         self._exploration_steps_:       int =                       exploration_steps
         self._reward_scale_:            float =                     reward_scale
+        
+        # Define temperature tuning parameters.
+        self._auto_temperature_:        bool =                      auto_temperature
+        self._target_entropy_:          float =                     target_entropy
         
         # Initialize networks.
         self._actor_:                   PolicyNetwork =             PolicyNetwork(
@@ -429,7 +421,7 @@ class SoftActorCritic(Agent):
                         "value":        self._value_network_.state_dict(),
                         "target_value": self._target_value_network_.state_dict(),
                         "critic_1":     self._critic_1_.state_dict(),
-                        "critic_2_":    self._critic_2_.state_dict()
+                        "critic_2":     self._critic_2_.state_dict()
                     },
             f =     path
         )
