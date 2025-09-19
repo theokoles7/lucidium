@@ -5,7 +5,9 @@ Registration decorators for agents/environments.
 
 __all__ = ["register_agent", "register_environment"]
 
-from typing import Callable, List, Optional, Type
+from typing             import Callable, List, Optional, Type
+
+from gymnasium.spaces   import Space
 
 def register_agent(
     name:           str,
@@ -51,6 +53,7 @@ def register_agent(
     # Expose decorator.
     return decorator
 
+
 def register_agent_command(
     name:           str,
     parser:         Callable
@@ -90,49 +93,54 @@ def register_agent_command(
     # Expose decorator.
     return decorator
 
+
 def register_environment(
-    name:           str,
-    tags:           Optional[List[str]] =   [],
-    entry_point:    Optional[Callable] =    None,
-    parser:         Optional[Callable] =    None
+    name:               str,
+    id:                 str,
+    action_types:       List[Space],
+    observation_types:  List[Space],
+    tags:               Optional[List[str]]
 ) -> Callable:
-    """# Register Environment.
+    """# Register Environment Parser.
 
     ## Args:
-        * name          (str):                  Name of environment registration entry.
-        * tags          (Optional[List[str]]):  Tags that describe the environment's taxonomy.
-        * entry_point   (Optional[Callable]):   Environment's main process entry point.
-        * parser        (Optional[Callable]):   Environment's argument registration handler.
+        * name              (str):                  Name of entry.
+        * id                (str):                  ID used for `gymnasium.make()`.
+        * action_types      (List[Space]):          Compatible action spaces.
+        * observation_types (List[Space]):          Compatible observation spaces.
+        * tags              (Optional[List[str]]):  Tags describing environment goals/tasks.
 
     ## Returns:
         * Callable: Registration decorator.
     """
     # Define decorator.
     def decorator(
-        cls:    Type
+        parser: Callable
     ) -> Type:
         """# Registration Decorator
 
         ## Args:
-            * cls   (Type): Environment class being registered.
+            * parser    Callable:   Environment argument parser registration function.
         """
         # Load registry.
         from lucidium.registries    import ENVIRONMENT_REGISTRY
         
         # Register environment.
         ENVIRONMENT_REGISTRY.register(
-            cls =           cls,
-            name =          name,
-            tags =          tags,
-            entry_point =   entry_point,
-            parser =        parser
+            name =              name,
+            id =                id,
+            action_types =      action_types,
+            observation_types = observation_types,
+            tags =              tags,
+            parser =            parser
         )
         
-        # Return registered class.
-        return cls
+        # Return registered environment parser.
+        return parser
     
     # Expose decorator.
     return decorator
+
 
 def register_environment_command(
     name:           str,

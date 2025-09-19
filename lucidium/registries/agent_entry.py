@@ -1,9 +1,9 @@
-"""# lucidium.registries.class_entry
+"""# lucidium.registries.agent_entry
 
-Defines the structure and utility of a registration entry.
+Defines the structure and utility of an agent registration entry.
 """
 
-__all__ = ["ClassEntry"]
+__all__ = ["AgentEntry"]
 
 from argparse           import _SubParsersAction
 from logging            import Logger
@@ -11,8 +11,8 @@ from typing             import Callable, List, Optional, Type
 
 from lucidium.utilities import get_child
 
-class ClassEntry():
-    """# Registry Entry
+class AgentEntry():
+    """# Agent Registry Entry
     
     Storage of class registration entry data.
     """
@@ -24,12 +24,12 @@ class ClassEntry():
         entry_point:    Optional[Callable] =    None,
         parser:         Optional[Callable] =    None
     ):
-        """# Instantiate Class Registration Entry.
+        """# Instantiate Agent Registration Entry.
 
         ## Args:
-            * cls       (Type):                 Class being registered.
+            * cls       (Type):                 Agent being registered.
             * name      (str):                  Name of entry.
-            * tags      (Optional[List[str]]):  Tags that describe the taxonomy of the class being registered.
+            * tags      (Optional[List[str]]):  Tags that describe the taxonomy of the agent being registered.
             * parser    (Optional[Callable]):   Argument parser handler.
         """
         # Initialize logger.

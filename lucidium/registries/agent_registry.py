@@ -1,31 +1,30 @@
-"""# lucidium.registries.class_registry
+"""# lucidium.registries.agent_registry
 
-Defines the class registry system.
+Defines the agent registry system.
 """
 
-__all__ = ["ClassRegistry"]
+__all__ = ["AgentRegistry"]
 
 from argparse                           import _SubParsersAction
 from logging                            import Logger
 from typing                             import Any, Callable, Dict, List, Optional, Type
 
-from lucidium.registries.class_entry    import ClassEntry
+from lucidium.registries.agent_entry    import AgentEntry
 from lucidium.utilities                 import get_child
 
-class ClassRegistry():
-    """# Class Registry
+class AgentRegistry():
+    """# Agent Registry
     
-    Class registry system with lazy loading.
+    Agent registry system with lazy loading.
     """
     
     def __init__(self,
-        name:   str
+        name:   str =   "agents"
     ):
-        """# Instantiate Class Registry.
+        """# Instantiate Agent Registry.
         
         ## Args:
-            * name  (str):  Name of the sub-module that the registry represents (e.g., "agents", 
-                            "environments")
+            * name  (str):  Name of the sub-module that the registry represents.
         """
         # Initialize logger.
         self.__logger__:    Logger =                get_child(f"{name}-registry")
@@ -34,7 +33,7 @@ class ClassRegistry():
         self._name_:        str =                   name
         
         # Initialize entry map.
-        self._entries_:     Dict[str, ClassEntry] = {}
+        self._entries_:     Dict[str, AgentEntry] = {}
         
         # Initialize loaded flag.
         self._loaded_:      bool =                  False
@@ -42,18 +41,18 @@ class ClassRegistry():
     # PROPERTIES ===================================================================================
     
     @property
-    def entries(self) -> Dict[str, ClassEntry]:
-        """# Class Registry Entries"""
+    def entries(self) -> Dict[str, AgentEntry]:
+        """# Agent Registry Entries"""
         return {name: entry.cls for name, entry in self._entries_.items()}.copy()
     
     @property
     def is_loaded(self) -> bool:
-        """# Class Registry is Loaded?"""
+        """# Agent Registry is Loaded?"""
         return self._loaded_
     
     @property
     def name(self) -> str:
-        """# Class Registry Name."""
+        """# Agent Registry Name."""
         return self._name_
         
     # METHODS ======================================================================================
@@ -79,14 +78,14 @@ class ClassRegistry():
     
     def get_entry(self,
         key:    str
-    ) -> ClassEntry:
-        """# Get Class Registry Entry.
+    ) -> AgentEntry:
+        """# Get Agent Registry Entry.
 
         ## Args:
             * key   (str):  Key of entry being fetched.
 
         ## Returns:
-            * ClassEntry:    Class Registry entry requested.
+            * AgentEntry:    Agent Registry entry requested.
         
         ## Raises:
             * KeyError: If registry entry does not exist.
@@ -140,13 +139,13 @@ class ClassRegistry():
         """# Load Registered Class.
 
         ## Args:
-            * name  (str):  Class Registry entry name.
+            * name  (str):  Agent Registry entry name.
 
         ## Returns:
             * Any:  Instantiated class.
         """
         # Fetch entry according to name.
-        entry:  ClassEntry =    self.get_entry(key = name)
+        entry:  AgentEntry =    self.get_entry(key = name)
         
         # Extract class.
         cls:    Type =          entry.cls
@@ -197,7 +196,7 @@ class ClassRegistry():
         self.__logger__.debug(f"Registering entry: cls = {cls}, name = {name}, tags = {tags}, entry_point = {entry_point}, parser = {parser}")
         
         # Register entry.
-        self._entries_[name] =  ClassEntry(
+        self._entries_[name] =  AgentEntry(
                                     cls =           cls,
                                     name =          name,
                                     tags =          tags,
@@ -231,7 +230,7 @@ class ClassRegistry():
     # HELPERS ======================================================================================
     
     def _ensure_loaded_(self) -> None:
-        """# Ensure Class Registry is Loaded."""
+        """# Ensure Agent Registry is Loaded."""
         if not self.is_loaded: self.load_all()
         
     def _import_all_modules_(self) -> None:
@@ -286,14 +285,14 @@ class ClassRegistry():
     
     def __getitem__(self,
         key:    str
-    ) -> ClassEntry:
-        """# Get Class Registry Entry.
+    ) -> AgentEntry:
+        """# Get Agent Registry Entry.
 
         ## Args:
             * key   (str):  Key of entry being fetched.
 
         ## Returns:
-            * ClassEntry:    Class Registry entry requested.
+            * AgentEntry:    Agent Registry entry requested.
         
         ## Raises:
             * KeyError: If registry entry does not exist.
@@ -309,5 +308,5 @@ class ClassRegistry():
         return len(self._entries_)
     
     def __repr__(self) -> str:
-        """# Class Registry Object Representation"""
-        return f"""<ClassRegistry({len(self._entries_)} entries)>"""
+        """# Agent Registry Object Representation"""
+        return f"""<AgentRegistry({len(self._entries_)} entries)>"""
