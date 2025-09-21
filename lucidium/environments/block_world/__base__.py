@@ -14,12 +14,12 @@ from lucidium.registration                              import register_environm
 from lucidium.spaces                                    import MultiDiscrete
 from lucidium.utilities                                 import get_child
 
-@register_environment(
-    name =          "block-world",
-    tags =          ["planning", "symbolic", "discrete"],
-    entry_point =   main,
-    parser =        register_block_world_parser
-)
+# @register_environment(
+#     name =          "block-world",
+#     tags =          ["planning", "symbolic", "discrete"],
+#     entry_point =   main,
+#     parser =        register_block_world_parser
+# )
 class BlockWorld(Environment):
     """# Block World (Environment)
     

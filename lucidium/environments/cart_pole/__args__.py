@@ -7,6 +7,17 @@ __all__ = ["register_cart_pole_parser"]
 
 from argparse               import _ArgumentGroup, ArgumentParser, _SubParsersAction
 
+from gymnasium.spaces       import Box, Discrete
+
+from lucidium.registration  import register_environment
+
+@register_environment(
+    name =              "cart-pole",
+    id =                "CartPole-v1",
+    action_types =      [Discrete],
+    observation_types = [Box],
+    tags =              ["classic-control"]
+)
 def register_cart_pole_parser(
     subparser:  _SubParsersAction
 ) -> None:

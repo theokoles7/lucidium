@@ -15,12 +15,12 @@ from lucidium.environments.grid_world.components    import Grid
 from lucidium.registration                          import register_environment
 from lucidium.spaces                                import Discrete
 
-@register_environment(
-    name =          "grid-world",
-    tags =          ["game", "single-player", "planning", "navigation"],
-    entry_point =   main,
-    parser =        register_grid_world_parser
-)
+# @register_environment(
+#     name =          "grid-world",
+#     tags =          ["game", "single-player", "planning", "navigation"],
+#     entry_point =   main,
+#     parser =        register_grid_world_parser
+# )
 class GridWorld(Environment):
     """# Grid World (Environment).
     

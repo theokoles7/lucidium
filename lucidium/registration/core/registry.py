@@ -216,7 +216,7 @@ class Registry(ABC):
         try:# For each module within package...
             for _, module, _ in walk_packages(
                 path =      package.__path__,
-                prefix =    f"lucidium.{self._name_}",
+                prefix =    f"lucidium.{self._name_}.",
                 onerror =   lambda x: None
             ):
                 

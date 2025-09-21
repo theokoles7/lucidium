@@ -106,4 +106,4 @@ def register_play_parser(
     # +============================================================================================+
     
     # Register environment parsers.
-    ENVIRONMENT_REGISTRY.register_parsers(parent_subparser = _subparser_)
+    ENVIRONMENT_REGISTRY.register_parsers(subparser = _subparser_)

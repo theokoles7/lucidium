@@ -41,7 +41,7 @@ def register_agent(
             * cls   (Type): Agent class being registered.
         """
         # Load registry.
-        from lucidium.registration.__init__ import AGENT_REGISTRY
+        from lucidium.registration import AGENT_REGISTRY
         
         # Register agent.
         AGENT_REGISTRY.register(
@@ -83,7 +83,7 @@ def register_agent_command(
             * entry_point   (Callable): Command's main process entry point.
         """
         # Load registry.
-        from lucidium.registration.__init__ import AGENT_COMMAND_REGISTRY
+        from lucidium.registration import AGENT_COMMAND_REGISTRY
         
         # Register agent command.
         AGENT_COMMAND_REGISTRY.register(
@@ -128,7 +128,7 @@ def register_environment(
             * parser    Callable:   Environment argument parser registration function.
         """
         # Load registry.
-        from lucidium.registration.__init__ import ENVIRONMENT_REGISTRY
+        from lucidium.registration import ENVIRONMENT_REGISTRY
         
         # Register environment.
         ENVIRONMENT_REGISTRY.register(
@@ -171,7 +171,7 @@ def register_environment_command(
             * entry_point   (Callable): Command's main process entry point.
         """
         # Load registry.
-        from lucidium.registration.__init__ import ENVIRONMENT_COMMAND_REGISTRY
+        from lucidium.registration import ENVIRONMENT_COMMAND_REGISTRY
         
         # Register environment command.
         ENVIRONMENT_COMMAND_REGISTRY.register(

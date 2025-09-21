@@ -65,8 +65,8 @@ def parse_lucidium_arguments() -> Namespace:
     # +============================================================================================+
     
     # Register agent and environment parsers.
-    AGENT_REGISTRY.register_parsers(parent_subparser = _subparser_)
-    ENVIRONMENT_REGISTRY.register_parsers(parent_subparser = _subparser_)
+    AGENT_REGISTRY.register_parsers(subparser = _subparser_)
+    ENVIRONMENT_REGISTRY.register_parsers(subparser = _subparser_)
 
     # Parse arguments
     return _parser_.parse_args()
@@ -135,7 +135,7 @@ class CommandHelpFormatter(HelpFormatter):
         if action.help: parts.append(f"{action.help}\n")
             
         # Add the agents section header.
-        parts.append("Agents:\n")
+        parts.append("Agents:\n-------\n")
         
         # For each registered agent...
         for name in AGENT_REGISTRY.entries:
@@ -150,10 +150,10 @@ class CommandHelpFormatter(HelpFormatter):
                 help_text:  str =               getattr(parser, "description", "")
                 
                 # Append agent command entry.
-                parts.append(f"  {name:<21} {help_text}")
+                parts.append(f"  {name:<21} {help_text}\n")
             
         # Add the agents section header.
-        parts.append("Environments:\n")
+        parts.append("Environments:\n-------------\n")
                 
         # For each registered environment...
         for name in ENVIRONMENT_REGISTRY.entries:
@@ -168,7 +168,7 @@ class CommandHelpFormatter(HelpFormatter):
                 help_text:  str =               getattr(parser, "description", "")
                 
                 # Append environment command entry.
-                parts.append(f"  {name:<21} {help_text}")
+                parts.append(f"  {name:<21} {help_text}\n")
         
         # Provide agent/environment help menus.
         return '\n'.join(parts)

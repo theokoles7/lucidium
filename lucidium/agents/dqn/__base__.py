@@ -4,7 +4,7 @@ Implementation of Deep Q-Network (DQN) agent based on "Playing Atari with Deep R
 Learning" by Mnih et al. (2013).
 """
 
-__all__ = ["DeepQNetwork"]
+__all__ = ["DQN"]
 
 from logging                        import Logger
 from typing                         import Any, Dict, List, Literal, Optional, override, Union

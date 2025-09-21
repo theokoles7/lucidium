@@ -18,12 +18,12 @@ from lucidium.spaces                                import Box, Discrete
 from lucidium.symbolic                              import Predicate
 from lucidium.utilities                             import get_child
 
-@register_environment(
-    name =          "tic-tac-toe",
-    tags =          ["game", "two-player", "turn-based", "discrete", "strategic"],
-    entry_point =   main,
-    parser =        register_tic_tac_toe_parser
-)
+# @register_environment(
+#     name =          "tic-tac-toe",
+#     tags =          ["game", "two-player", "turn-based", "discrete", "strategic"],
+#     entry_point =   main,
+#     parser =        register_tic_tac_toe_parser
+# )
 class TicTacToe(Environment):
     """# Tic-Tac-Toe (Environment)
     
