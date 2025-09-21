@@ -7,7 +7,7 @@ __all__ = ["register_sarsa_parser"]
 
 from argparse               import _ArgumentGroup, ArgumentParser, _SubParsersAction
 
-from lucidium.registries    import AGENT_COMMAND_REGISTRY
+from lucidium.registration  import AGENT_COMMAND_REGISTRY
 
 def register_sarsa_parser(
     parent_subparser:   _SubParsersAction

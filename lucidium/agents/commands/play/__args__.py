@@ -8,7 +8,7 @@ __all__ = ["register_play_parser"]
 from argparse               import _ArgumentGroup, ArgumentParser, _SubParsersAction
 from typing                 import Union
 
-from lucidium.registries    import ENVIRONMENT_REGISTRY
+from lucidium.registration  import ENVIRONMENT_REGISTRY
 
 def register_play_parser(
     parent_subparser:   _SubParsersAction

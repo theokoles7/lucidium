@@ -17,7 +17,7 @@ from lucidium.agents.__base__       import Agent
 from lucidium.agents.nlm.__args__   import register_nlm_parser
 from lucidium.agents.nlm.__main__   import main
 from lucidium.agents.nlm.layers     import LogicLayer
-from lucidium.registries            import register_agent
+from lucidium.registration          import register_agent
 from lucidium.utilities.logger      import get_child
 
 @register_agent(

@@ -16,7 +16,7 @@ from typing                                 import Any, Dict
 from lucidium.agents                        import Agent
 from lucidium.agents.commands.play.__args__ import register_play_parser
 from lucidium.environments                  import Environment
-from lucidium.registries                    import AGENT_REGISTRY, ENVIRONMENT_REGISTRY, register_agent_command
+from lucidium.registration                  import AGENT_REGISTRY, ENVIRONMENT_REGISTRY, register_agent_command
 from lucidium.utilities                     import get_child, TIMESTAMP
 
 class Game():

@@ -1,4 +1,4 @@
-"""# lucidium.agents.components.q_table
+"""# lucidium.tabular.q_table
 
 Defines the structure and utility of the Q-Table.
 """
@@ -12,11 +12,11 @@ from logging            import Logger
 from pathlib            import Path
 from typing             import Any, Dict, Hashable, List, Literal, Tuple, Union
 
-from numpy              import argmax, array, asarray, float64, full, max as np_max, ndarray, zeros
+from gymnasium.spaces   import Discrete
+from numpy              import argmax, array, asarray, float64, full, max as np_max, zeros
 from numpy.random       import uniform
 from numpy.typing       import NDArray
 
-from lucidium.spaces    import Discrete
 from lucidium.utilities import get_child
 
 class QTable():
@@ -51,7 +51,12 @@ class QTable():
                                     update these values based on the actual rewards received.
         """
         # Assert that action space is either an integer or a discrete space.
-        assert isinstance(action_space, (int, Discrete)), f"Invalid action space type provided: {type(action_space)}"
+        assert isinstance(action_space, (int, Discrete)),                                   \
+            f"Invalid action space type provided: {type(action_space)}"
+            
+        # Assert that initialization method is valid.
+        assert initialization_method in ["zeros", "random", "small-random", "optimistic"],  \
+            f"Invalid initialization method provided: {initialization_method}"
         
         # Initialize logger.
         self.__logger__:                Logger =                get_child("q-table")        

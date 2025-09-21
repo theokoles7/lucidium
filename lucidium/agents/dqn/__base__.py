@@ -9,6 +9,7 @@ __all__ = ["DeepQNetwork"]
 from logging                        import Logger
 from typing                         import Any, Dict, List, Literal, Optional, override, Union
 
+from gymnasium                      import Env
 from numpy.random                   import rand
 from numpy.typing                   import NDArray
 from torch                          import argmax, as_tensor, float32, load, long, manual_seed, no_grad, save, Tensor
@@ -21,8 +22,7 @@ from lucidium.agents.dqn.__args__   import register_dqn_parser
 from lucidium.agents.dqn.__main__   import main
 from lucidium.memory                import ExperienceReplayBuffer
 from lucidium.neural                import QNetwork
-from lucidium.registries            import register_agent
-from lucidium.spaces                import Space
+from lucidium.registration          import register_agent
 from lucidium.utilities             import get_child
 
 @register_agent(
@@ -44,8 +44,7 @@ class DQN(Agent):
     
     def __init__(self,
         # Environment.
-        action_space:           Space,
-        observation_space:      Space,
+        environment:            Env, *,
         
         # Hyperparameters.
         learning_rate:          float =                             1e-3,
@@ -94,11 +93,10 @@ class DQN(Agent):
                                                     "cpu".
         """
         # Initialize logger.
-        self.__logger__:    Logger =    get_child("dqn")
+        self.__logger__:            Logger =                    get_child("dqn")
         
-        # Define environment components.
-        self._action_space_:        Space =                     action_space
-        self._observation_space_:   Space =                     observation_space
+        # Define environment.
+        self._environment_:         Env =                       environment
         
         # Define learning parameters.
         self._learning_rate_:       float =                     learning_rate
@@ -125,14 +123,14 @@ class DQN(Agent):
         
         # Define networks.
         self._q_network_:           QNetwork =                  QNetwork(
-                                                                    observation_size =  observation_space,
-                                                                    action_size =       action_space,
+                                                                    observation_size =  self._environment_.observation_space,
+                                                                    action_size =       self._environment_.action_space,
                                                                 ).to(to_device)
         
         # Define networks.
         self._target_q_network_:    QNetwork =                  QNetwork(
-                                                                    observation_size =  observation_space,
-                                                                    action_size =       action_space,
+                                                                    observation_size =  self._environment_.observation_space,
+                                                                    action_size =       self._environment_.action_space,
                                                                 ).to(to_device)
         
         # Hard sync target network.
@@ -200,7 +198,7 @@ class DQN(Agent):
             self.__logger__.debug("Choosing to explore")
             
             # Explore.
-            self._current_action_:  int =   self._action_space_.sample()
+            self._current_action_:  int =   self._environment_.action_space.sample()
         
         # Otherwise...
         else:

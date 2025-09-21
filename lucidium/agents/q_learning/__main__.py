@@ -4,7 +4,7 @@ __all__ = ["main"]
 
 from logging                import Logger
 
-from lucidium.registries    import AGENT_COMMAND_REGISTRY
+from lucidium.registration  import AGENT_COMMAND_REGISTRY
 from lucidium.utilities     import get_child
 
 def main(

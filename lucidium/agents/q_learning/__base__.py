@@ -9,14 +9,14 @@ __all__ = ["QLearning"]
 from logging                                import Logger
 from typing                                 import Any, Dict, Literal, override
 
+from gymnasium.spaces                       import Space
 from numpy.random                           import rand
 
 from lucidium.agents.__base__               import Agent
-from lucidium.agents.components             import QTable
 from lucidium.agents.q_learning.__args__    import register_q_learning_parser
 from lucidium.agents.q_learning.__main__    import main
-from lucidium.registries                    import register_agent
-from lucidium.spaces                        import Space
+from lucidium.registration                  import register_agent
+from lucidium.tabular                       import QTable
 from lucidium.utilities                     import get_child
 
 @register_agent(

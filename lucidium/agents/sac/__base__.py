@@ -23,7 +23,7 @@ from lucidium.agents.sac.__args__       import register_sac_parser
 from lucidium.agents.sac.__main__       import main
 from lucidium.agents.sac.networks       import *
 from lucidium.agents.sac.replay_buffer  import ExperienceReplayBuffer
-from lucidium.registries                import register_agent
+from lucidium.registration              import register_agent
 from lucidium.spaces                    import Space
 from lucidium.utilities                 import get_child
 
