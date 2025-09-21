@@ -7,6 +7,8 @@ __all__ = ["EnvironmentRegistry"]
 
 from typing                         import Dict, override
 
+from gymnasium                      import Env, make
+
 from lucidium.registration.core     import Registry
 from lucidium.registration.entries  import EnvironmentEntry
 
@@ -34,6 +36,29 @@ class EnvironmentRegistry(Registry):
     def entries(self) -> Dict[str, EnvironmentEntry]:
         """# Registry Entries."""
         return self._entries_.copy()
+    
+    # METHODS ======================================================================================
+    
+    def load(self,
+        name:   str,
+        **kwargs
+    ) -> Env:
+        """# Load Environment.
+
+        ## Args:
+            * name  (str):  Name under which environment is registered.
+
+        ## Returns:
+            * Env:  Instantiated environment.
+        """
+        # Fetch entry according to name.
+        entry:  EnvironmentEntry =  self.get_entry(key = name)
+        
+        # Debug action.
+        self.__logger__.debug(f"Loading {name} with arguments; {kwargs}")
+        
+        # Load environment.
+        return make(id = entry.id, **kwargs)
         
     # HELPERS ======================================================================================
     
