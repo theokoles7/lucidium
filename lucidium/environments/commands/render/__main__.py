@@ -9,7 +9,7 @@ from typing                                         import Any, Literal, Union
 
 from lucidium.environments.__base__                 import Environment
 from lucidium.environments.commands.render.__args__ import register_render_parser
-from lucidium.registries                            import ENVIRONMENT_REGISTRY, register_environment_command
+from lucidium.registration                          import ENVIRONMENT_REGISTRY, register_environment_command
 
 class Rendering():
     """# Rendering (Process)

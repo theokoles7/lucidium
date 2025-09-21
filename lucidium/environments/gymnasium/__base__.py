@@ -10,7 +10,7 @@ from gymnasium                                  import Env, make
 from lucidium.environments.__base__             import Environment
 from lucidium.environments.gymnasium.__args__   import register_gymnasium_parser
 from lucidium.environments.gymnasium.__main__   import main
-from lucidium.registries                        import register_environment
+from lucidium.registration                      import register_environment
 
 @register_environment(
     name =          "gymnasium",

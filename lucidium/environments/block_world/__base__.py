@@ -10,7 +10,7 @@ from lucidium.environments.__base__                     import Environment
 from lucidium.environments.block_world.__args__         import register_block_world_parser
 from lucidium.environments.block_world.__main__         import main
 from lucidium.environments.block_world.components.world import World
-from lucidium.registries                                import register_environment
+from lucidium.registration                              import register_environment
 from lucidium.spaces                                    import MultiDiscrete
 from lucidium.utilities                                 import get_child
 

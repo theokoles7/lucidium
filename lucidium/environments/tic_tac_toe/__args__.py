@@ -7,7 +7,7 @@ __all__ = ["register_tic_tac_toe_parser"]
 
 from argparse               import _ArgumentGroup, ArgumentParser, _SubParsersAction
 
-from lucidium.registries    import ENVIRONMENT_COMMAND_REGISTRY
+from lucidium.registration  import ENVIRONMENT_COMMAND_REGISTRY
 
 def register_tic_tac_toe_parser(
     parent_subparser:   _SubParsersAction

@@ -12,7 +12,7 @@ from lucidium.environments.grid_world.__args__      import register_grid_world_p
 from lucidium.environments.grid_world.__main__      import main
 from lucidium.environments.grid_world.actions       import GridWorldActions
 from lucidium.environments.grid_world.components    import Grid
-from lucidium.registries                            import register_environment
+from lucidium.registration                          import register_environment
 from lucidium.spaces                                import Discrete
 
 @register_environment(

@@ -9,7 +9,7 @@ from argparse               import _ArgumentGroup, ArgumentParser, _SubParsersAc
 from ast                    import literal_eval
 from typing                 import Dict, List, Set, Tuple
 
-from lucidium.registries    import ENVIRONMENT_COMMAND_REGISTRY
+from lucidium.registration  import ENVIRONMENT_COMMAND_REGISTRY
 
 def register_grid_world_parser(
     parent_subparser:   _SubParsersAction

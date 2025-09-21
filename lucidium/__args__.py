@@ -8,7 +8,7 @@ __all__ = ["parse_lucidium_arguments"]
 from argparse                           import Action, ArgumentParser, _ArgumentGroup, HelpFormatter, Namespace, _SubParsersAction
 from typing                             import override
 
-from lucidium.registries                import AGENT_REGISTRY, ENVIRONMENT_REGISTRY
+from lucidium.registration              import AGENT_REGISTRY, ENVIRONMENT_REGISTRY
 
 def parse_lucidium_arguments() -> Namespace:
     """# Parse Lucidium Arguments.

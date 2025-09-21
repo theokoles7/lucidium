@@ -13,7 +13,7 @@ from lucidium.environments.tic_tac_toe.__args__     import register_tic_tac_toe_
 from lucidium.environments.tic_tac_toe.__main__     import main
 from lucidium.environments.tic_tac_toe.components   import *
 from lucidium.environments.__base__                 import Environment
-from lucidium.registries                            import register_environment
+from lucidium.registration                          import register_environment
 from lucidium.spaces                                import Box, Discrete
 from lucidium.symbolic                              import Predicate
 from lucidium.utilities                             import get_child

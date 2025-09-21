@@ -8,7 +8,7 @@ from logging                import Logger
 from typing                 import Any
 
 from lucidium.__args__      import parse_lucidium_arguments
-from lucidium.registries    import AGENT_REGISTRY, ENVIRONMENT_REGISTRY
+from lucidium.registration  import AGENT_REGISTRY, ENVIRONMENT_REGISTRY
 from lucidium.utilities     import BANNER, get_logger
 
 def main(*args, **kwargs) -> Any:
