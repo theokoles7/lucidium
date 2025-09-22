@@ -39,7 +39,7 @@ def main(*args, **kwargs) -> Any:
             _logger_.debug(f"Routing agent command: {_arguments_.agent}")
             
             # Dispatch agent.
-            return AGENT_REGISTRY.dispatch(cls = _arguments_.command, **vars(_arguments_))
+            return AGENT_REGISTRY.dispatch(name = _arguments_.command, **vars(_arguments_))
             
         # If command corresponds to environments...
         if _arguments_.command in ENVIRONMENT_REGISTRY:

@@ -7,7 +7,7 @@ from logging                import Logger
 from lucidium.registration  import AGENT_COMMAND_REGISTRY
 from lucidium.utilities     import get_child
 
-def main(
+def dqn_entry_point(
     agent_action: str,
     **kwargs
 ) -> None:

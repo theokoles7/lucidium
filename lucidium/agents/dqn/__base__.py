@@ -6,29 +6,31 @@ Learning" by Mnih et al. (2013).
 
 __all__ = ["DQN"]
 
-from logging                        import Logger
+from itertools                      import count
+from os                             import makedirs
 from typing                         import Any, Dict, List, Literal, Optional, override, Union
 
 from gymnasium                      import Env
+from numpy                          import array, clip
 from numpy.random                   import rand
 from numpy.typing                   import NDArray
-from torch                          import argmax, as_tensor, float32, load, long, manual_seed, no_grad, save, Tensor
+from torch                          import BoolTensor, device, FloatTensor, float32, load, long, LongTensor, no_grad, save, stack, tensor, Tensor
 from torch.nn                       import Module
 from torch.nn.functional            import smooth_l1_loss
+from torch.nn.utils                 import clip_grad_value_
 from torch.optim                    import Adam
 
 from lucidium.agents.__base__       import Agent
 from lucidium.agents.dqn.__args__   import register_dqn_parser
-from lucidium.agents.dqn.__main__   import main
-from lucidium.memory                import ExperienceReplayBuffer
+from lucidium.agents.dqn.__main__   import dqn_entry_point
+from lucidium.memory                import ExperienceReplayBuffer, Transition
 from lucidium.neural                import QNetwork
 from lucidium.registration          import register_agent
-from lucidium.utilities             import get_child
 
 @register_agent(
     name =          "dqn",
     tags =          ["model-free", "value-based", "off-policy", "deep-rl"],
-    entry_point =   main,
+    entry_point =   dqn_entry_point,
     parser =        register_dqn_parser
 )
 class DQN(Agent):
@@ -44,122 +46,132 @@ class DQN(Agent):
     
     def __init__(self,
         # Environment.
-        environment:            Env, *,
+        environment:                Env, *,
         
-        # Hyperparameters.
-        learning_rate:          float =                             1e-3,
-        discount_rate:          float =                             0.99,
-        exploration_rate:       float =                             1.0,
-        exploration_decay:      float =                             0.99,
-        exploration_min:        float =                             0.1,
-        target_tau:             float =                             2e-3,
-        update_interval:        int =                               4,
+        # Exploration.
+        exploration_rate:           float =                             1.0,
+        exploration_decay:          float =                             0.995,
+        exploration_min:            float =                             0.01,
+        
+        # Rewards.
+        discount_rate:              float =                             0.99,
+        clip_rewards:               bool =                              False,
+        
+        # Optimization.
+        learning_rate:              float =                             2e-4,
+        target_update_frequency:    int =                               100,
         
         # Experience Replay Buffer.
-        replay_buffer_capacity: int =                               1e6,
-        buffer_batch_size:      int =                               64,
-        replay_policy:          Literal["prioritized", "uniform"] = "uniform",
-        reaply_policy_kwargs:   Dict[str, Any] =                    None,
+        buffer_capacity:            int =                               1e6,
+        buffer_batch_size:          int =                               32,
+        replay_policy:              Literal["prioritized", "uniform"] = "uniform",
+        replay_policy_kwargs:       Dict[str, Any] =                    {},
         
-        # Seeding.
-        random_seed:            int =                               42,
-        to_device:              str =                               "cpu",
+        # Seeding & Hardware.
+        random_seed:                int =                               42,
+        to_device:                  str =                               "cpu",
         **kwargs
     ):
-        """# Instantiate Deep Q-Network Agent.
+        """# Instantiate Deep Q-Network.
 
         ## Args:
-            * action_space              (Space):    Environment's action space.
-            * observation_space         (Space):    Environment's observation space.
-            * learning_rate             (float):    Optimizer learning rate. Defaults to 1e-3.
-            * discount_rate             (float):    Discount factor for action updates. Defaults to 
-                                                    0.99.
-            * exploration_rate          (float):    Probability that agent will choose to explore. 
-                                                    Defaults to 1.0.
-            * exploration_decay         (float):    Rate at which agent's exploration probability 
-                                                    will decay. Defaults to 0.99.
-            * exploration_min           (float):    Minimum value allowed for exploration rate. 
-                                                    Defaults to 0.1.
-            * target_tau                (float):    Soft update rate. Defaults to 0.002.
-            * update_interval           (int):      Interval by which learning updates will occur. 
-                                                    Defaults to 4.
-            * replay_buffer_capacity    (int):      Maximum capacity for experience replay buffer. 
-                                                    Defaults to 1e6.
-            * buffer_batch_size         (int):      Size of batch samples from experience replay 
-                                                    buffer. Defaults to 64.
-            * random_seed               (int):      Random seed value for reproducibility. Defaults 
-                                                    to 42.
-            * to_device                 (str):      Device on which to run the agent. Defaults to 
-                                                    "cpu".
+            * environment               (Env):              Environment with which agent will 
+                                                            interact.
+                                                            
+        ## Exploration:
+            * exploration_rate          (float):            Initial exploration rate. Defaults to 
+                                                            1.0.
+            * exploration_decay         (float):            Rate at which exploration rate will 
+                                                            decay. Defaults to 0.995.
+            * exploration_min           (float):            Value at which exploration rate decay 
+                                                            will cease. Defaults to 0.01.
+                                                            
+        ## Rewards:
+            * discount_rate             (float):            Future reward discount factor. Defaults 
+                                                            to 0.99.
+            * clip_rewards              (bool):             If true, rewards will be clipped. 
+                                                            Defaults to False.
+        
+        ## Optimization:
+            * learning_rate             (float):            Optimizer learning rate. Defaults to 
+                                                            2e-4.
+            * target_update_frequency   (int):              Step interval at which target network 
+                                                            parameters will be updated. Defaults to 
+                                                            100.
+                                                            
+        ## Experience Replay:
+            * buffer_capacity           (int):              Maximum capacity of experience replay 
+                                                            buffer. Defaults to 1e6.
+            * buffer_batch_size         (int):              Buffer sampling batch size. Defaults to 
+                                                            32.
+            * replay_policy             (str):              Policy that will dictate buffer 
+                                                            sampling. Defaults to "uniform".
+            * replay_policy_kwargs      (Dict[str, Any]):   Policy specific arguments map. Defaults 
+                                                            to None.
+                                                            
+        ## Seeding & Hardware:
+            * random_seed               (int):              Random seed value for reproducibility. 
+                                                            Defaults to 42.
+            * to_device                 (str):              Torch device upon which data will be 
+                                                            placed. Defaults to "cpu".
         """
-        # Initialize logger.
-        self.__logger__:            Logger =                    get_child("dqn")
-        
-        # Define environment.
-        self._environment_:         Env =                       environment
-        
-        # Define learning parameters.
-        self._learning_rate_:       float =                     learning_rate
-        
-        # Define discount parameters.
-        self._discount_rate_:       float =                     discount_rate
+        # Initialize agent.
+        super(DQN, self).__init__(id = "dqn", name = "Deep Q-Network", environment = environment, random_seed = random_seed)
         
         # Define exploration parameters.
-        self._exploration_rate_:    float =                     exploration_rate
-        self._exploration_decay_:   float =                     exploration_decay
-        self._exploration_min_:     float =                     exploration_min
+        self._exploration_rate_:        float =                     float(exploration_rate)
+        self._exploration_decay_:       float =                     float(exploration_decay)
+        self._exploration_min_:         float =                     float(exploration_min)
         
-        # Define soft update parameters.
-        self._target_tau_:          float =                     target_tau
-        self._update_interval_:     int =                       update_interval
+        # Define reward handling.
+        self._discount_rate_:           float =                     float(discount_rate)
+        self._clip_rewards_:            bool =                      bool(clip_rewards)
+        
+        # Define optimization parameters.
+        self._learning_rate_:           float =                     float(learning_rate)
+        self._target_update_frequency_: int =                       int(target_update_frequency)
         
         # Initialize experience replay buffer.
-        self._replay_buffer_:       ExperienceReplayBuffer =    ExperienceReplayBuffer(
-                                                                    capacity =      replay_buffer_capacity,
-                                                                    batch_size =    buffer_batch_size,
-                                                                    policy =        replay_policy,
-                                                                    **(reaply_policy_kwargs or {})
-                                                                )
+        self._memory_:                  ExperienceReplayBuffer =    ExperienceReplayBuffer(
+                                                                        capacity =      buffer_capacity,
+                                                                        batch_size =    buffer_batch_size,
+                                                                        policy =        replay_policy,
+                                                                        **replay_policy_kwargs
+                                                                    )
         
-        # Define networks.
-        self._q_network_:           QNetwork =                  QNetwork(
-                                                                    observation_size =  self._environment_.observation_space,
-                                                                    action_size =       self._environment_.action_space,
-                                                                ).to(to_device)
+        # Define value network.
+        self._value_:                   QNetwork =                  QNetwork(
+                                                                        observation_space = self._environment_.observation_space,
+                                                                        action_space =      self._environment_.action_space,
+                                                                        device =            to_device
+                                                                    )
         
-        # Define networks.
-        self._target_q_network_:    QNetwork =                  QNetwork(
-                                                                    observation_size =  self._environment_.observation_space,
-                                                                    action_size =       self._environment_.action_space,
-                                                                ).to(to_device)
+        # Define target network.
+        self._target_:                  QNetwork =                  QNetwork(
+                                                                        observation_space = self._environment_.observation_space,
+                                                                        action_space =      self._environment_.action_space,
+                                                                        device =            to_device
+                                                                    )
         
-        # Hard sync target network.
-        self._target_q_network_.load_state_dict(state_dict = self._q_network_.state_dict())
+        # Hard sync target network to value network parameters.
+        self._update_target_network_()
         
         # Define optimizer.
-        self._optimizer_:           Adam =                      Adam(
-                                                                    params =    self._q_network_.parameters(),
-                                                                    lr =        learning_rate
-                                                                )
+        self._optimizer_:               Adam =                      Adam(
+                                                                        params =    self._value_.parameters(),
+                                                                        lr =        self._learning_rate_
+                                                                    )
         
         # Define device on which to place tensors.
-        self._device_:              str =                       to_device
+        self._device_:                  str =                       device(to_device)
         
         # Initialize step tracking.
-        self._step_t_:              int =                       0
+        self._steps_taken_:             int =                       0
         
         # Debug initialization.
-        self.__logger__.debug(f"Initialized Deep Q-Network agent ({locals()})")
+        self.__logger__.debug(f"Initialized ({locals()})")
         
     # PROPERTIES ===================================================================================
-    
-    @property
-    def name(self) -> str:
-        """# DQN Agent Name.
-        
-        Deep Q-Network agent's proper name.
-        """
-        return "Deep Q-Network"
     
     @property
     def statistics(self) -> Dict[str, Any]:
@@ -168,11 +180,11 @@ class DQN(Agent):
         Running statistics pertaining to agent's learning/performance.
         """
         return  {
-                    "step":             self._step_t_,
+                    "step":             self._steps_taken_,
                     "exploration_rate": self._exploration_rate_,
-                    "buffer_size":      self._replay_buffer_.size,
-                    "buffer_ready":     self._replay_buffer_.is_ready_for_sampling
-        }
+                    "buffer_size":      self._memory_.size,
+                    "buffer_ready":     self._memory_.is_ready_for_sampling
+                }
         
     # METHODS ======================================================================================
     
@@ -188,46 +200,68 @@ class DQN(Agent):
         ## Returns:
             * int:  Agent's chosen action.
         """
-        # Cache current state.
-        self._current_state_:   int =   state
-        
         # If exploration rate (epsilon) is higher than a randomly chosen value...
         if rand() < self._exploration_rate_:
             
-            # Log for debugging.
-            self.__logger__.debug("Choosing to explore")
-            
             # Explore.
-            self._current_action_:  int =   self._environment_.action_space.sample()
+            action: int =   self._explore_()
         
         # Otherwise...
         else:
+            # Choose best action.
+            action: int =   self._select_best_action_(state = state)
             
-            # Convert state to Tensor.
-            if not isinstance(state, Tensor): state = as_tensor(state, dtype = float32)
-            
-            # Ensure batch dimension.
-            if state.dim() == 0: state = state.view(1, 1)
-            if state.dim() == 1: state = state.unsqueeze(0)
-            
-            # With no gradient update...
-            with no_grad():
-            
-                # Log for debugging.
-                self.__logger__.debug(f"Choosing best action for state {state}")
-                
-                # Choose max-value action from Q-table based on current state.
-                self._current_action_:  int =   int(argmax(
-                                                    self._q_network_(state.to(self._device_).float()),
-                                                    dim = 1
-                                                ).item())
-            
-        # Log for debugging.
-        self.__logger__.debug(f"Chose action {self._current_action_} for state {state}")
+        # Debug action.
+        self.__logger__.debug(f"Chose action {action} for state {state}")
             
         # Submit chosen action.
-        return self._current_action_
+        return action
     
+    @override
+    def evaluate_episode(self) -> Dict[str, Any]:
+        """# Evaluate Agent for One Episode.
+
+        ## Returns:
+            * Dict[str, Any]:   Evaluation statistics/results.
+        """
+        # Reset environment.
+        state, info =   self._environment_.reset()
+            
+        # Convert state to tensor.
+        state:  Tensor =    tensor(state, dtype = float32, device = self._device_).unsqueeze(0)
+        
+        # Initialize reward tracking.
+        episode_reward: float = 0.0
+        
+        # Until environment is solved...
+        for step in count():
+            
+            # Select an action.
+            action:     int =                               self._select_best_action_(state = state)
+            
+            # Submit action.
+            new_state, reward, terminal, truncated, meta =  self._environment_.step(action = action)
+            
+            # Track reward.
+            episode_reward +=                               reward
+            
+            # Convert new state to tensor.
+            new_state:  Tensor =                            tensor(
+                                                                new_state,
+                                                                dtype =     float32,
+                                                                device =    self._device_
+                                                            ).unsqueeze(0)
+            
+            # Episode concludes if new state is terminal/truncated.
+            if terminal or truncated: break
+            
+            # Update current state.
+            state =                                         new_state
+            
+        # Provide evaluation resutls.
+        return {"reward": episode_reward, "steps": step}
+    
+    @override
     def load_model(self,
         path:   str
     ) -> None:
@@ -241,83 +275,72 @@ class DQN(Agent):
         # Load checkpoint file.
         checkpoint: Dict =  load(path, map_location = self._device_)
         
-        # Load networks.
-        self._q_network_.load_state_dict(checkpoint["q_network"])
-        self._target_q_network_.load_state_dict(checkpoint["target_q_network"])
-        
-        # Load optimizer if it was saved.
-        if "optimizer" in checkpoint: self._optimizer_.load_state_dict(checkpoint["optimizer"])
-        
-        # Otherwise, warn that it was not found.
-        else: self.__logger__.warning(f"Checkpoint file {path} does not contain optimizer")
+        # Load checkpoint state dictionaries.
+        self._value_.load_state_dict(checkpoint["value_network_state_dict"])
+        self._target_.load_state_dict(checkpoint["target_network_state_dict"])
+        self._optimizer_.load_state_dict(checkpoint["optimizer_state_dict"])
         
         # Load time step.
-        self._step_t_ = int(checkpoint.get("step", 0))
+        self._steps_taken_: int =       int(checkpoint.get("step", 0))
+        
+        # Load hyperparameters.
+        self._learning_rate_:           float = float(checkpoint.get("learning_rate",         2e-4))
+        self._discount_rate_:           float = float(checkpoint.get("discount_rate",         0.99))
+        self._exploration_rate_:        float = float(checkpoint.get("exploration_rate",      1.0))
+        self._exploration_min_:         float = float(checkpoint.get("exploration_min",       0.01))
+        self._exploration_decay_:       float = float(checkpoint.get("exploration_decay",     0.995))
+        self._target_update_frequency_: int =   int(checkpoint.get("target_update_frequency", 10000))
+        self._clip_rewards_:            bool =  bool(checkpoint.get("clip_rewards",           False))
         
         # Log for debugging.
         self.__logger__.info(f"Loaded model from {path}")
         
     @override
     def observe(self,
-        new_state:  Tensor,
+        state:      Tensor,
+        action:     int,
         reward:     float,
+        new_state:  Tensor,
         done:       bool
-    ) -> Dict[str, float]:
+    ) -> float:
         """# Observe Transition
 
         ## Args:
-            * new_state (Tensor):   State of environment after agent's action.
-            * reward    (float):    Reward yielded/penalty incurred by agent's action.
+            * state     (Tensor):   Initial state of environment before action was submitted.
+            * action    (int):      Action submitted by agent.
+            * reward    (float):    Reward yielded/penalty incurred by action submitted to 
+                                    environment.
+            * new_state (Tensor):   State of environment after action was submitted.
             * done      (bool):     Flag indicating if new state is terminal.
 
         ## Returns:
-            * Dict[str, float]: Agent's observation metrics.
+            * float:    Loss calculation.
         """
         # Debug transition observation.
-        self.__logger__.debug(f"Observing transition [old_state: {self._current_state_}, action: {self._current_action_}, reward: {reward}, new_state: {new_state}, done: {done}]")
-        
-        # Commit transition experience to memory.
-        self._replay_buffer_.push(self._current_state_, self._current_action_, reward, new_state, done)
+        self.__logger__.debug(f"Observing transition [{state}, {action}, {reward}, {new_state}, {done}]")
         
         # Increment step tracker.
-        self._step_t_                            += 1
+        self._steps_taken_ +=   1
         
-        # Initialize observation metrics map.
-        observation_metrics:    Dict[str, float] =  {
-                                                        "loss":             None,
-                                                        "exploration_rate": None
-                                                    }
+        # Clip reward if requested.
+        if self._clip_rewards_: reward = clip(reward, -1, 1)
         
-        # If this is an update interval...
-        if self._step_t_ % self._update_interval_ == 0:
-            
-            # Update target and compute loss.
-            loss:   float = self._update_()
-            
-            # If loss was computed...
-            if loss is not None:
-                
-                # Record loss.
-                self._last_loss_:   float = float(loss)
-                
-                # Update observation metrics.
-                observation_metrics["loss"] = self._last_loss_
-                
-        # Decay ecploration rate (epsilon).
-        self._exploration_rate_:    float = max(
-                                                self._exploration_min_,
-                                                self._exploration_rate_ * self._exploration_decay_
-                                            )
+        # Commit transition experience to memory.
+        self._memory_.push(state, action, reward, new_state, done)
         
-        # Update observation metrics.
-        observation_metrics["exploration_rate"] = self._exploration_rate_
+        # Train value network.
+        loss:   float =         self._train_value_network_()
         
-        # Update replay buffer sampling policy schedule.
-        self._replay_buffer_.step()
+        # Update target network parameters if this is the proper interval.
+        if self._steps_taken_ % self._target_update_frequency_ == 0: self._update_target_network_()
         
-        # Provide observatino metrics.
-        return  observation_metrics
+        # Decay epsilon.
+        self._decay_epsilon_()
+        
+        # Provide loss calculation.
+        return loss
     
+    @override
     def save_model(self,
         path:   str
     ) -> None:
@@ -328,143 +351,193 @@ class DQN(Agent):
         ## Args:
             * path (str):   Path at which agent's model will be written.
         """
-        # Save model to file.
+        # Ensure path exists.
+        makedirs(name = path, exist_ok = True)
+        
+        # Save model checkpoint to file.
         save(
             {
-                "q_network":        self._q_network_.state_dict(),
-                "target_q_network": self._target_q_network_.state_dict(),
-                "optimizer":        self._optimizer_.state_dict(),
-                "step":             self._step_t_
+                "value_network_state_dict":     self._value_.state_dict(),
+                "target_network_state_dict":    self._target_.state_dict(),
+                "optimizer_state_dict":         self._optimizer_.state_dict(),
+                "steps_taken":                  self._steps_taken_,
+                "hyperparameters": {
+                    "learning_rate":            self._learning_rate_,
+                    "discount_rate":            self._discount_rate_,
+                    "exploration_rate":         self._exploration_rate_,
+                    "exploration_min":          self._exploration_min_,
+                    "exploration_decay":        self._exploration_decay_,
+                    "target_update_frequency":  self._target_update_frequency_,
+                    "clip_rewards":             self._clip_rewards_
+                }
             },
-            path
+            f"{path}/agent_checkpoint.pth"
         )
         
         # Log for debugging.
-        self.__logger__.info(f"Saved model fto {path}")
+        self.__logger__.info(f"Saved model to {path}")
+        
+    @override
+    def train_episode(self) -> Dict[str, Any]:
+        """# Train Agent for One Episode.
+
+        ## Returns:
+            * Dict[str, Any]:   Training statistics/results.
+        """
+        # Reset environment.
+        state, info =   self._environment_.reset(seed = self._seed_)
+            
+        # Convert state to tensor.
+        state:  Tensor =    tensor(state, dtype = float32, device = self._device_).unsqueeze(0)
+        
+        # Initialize reward tracking.
+        episode_reward: float = 0.0
+        
+        # Until environment is solved...
+        for step in count():
+            
+            # Select an action.
+            action:     int =                               self.act(state = state)
+            
+            # Submit action.
+            new_state, reward, terminal, truncated, meta =  self._environment_.step(action = action)
+            
+            # Track reward.
+            episode_reward +=                               reward
+            
+            # Convert new state to tensor.
+            new_state:  Tensor =                            tensor(
+                                                                new_state,
+                                                                dtype =     float32,
+                                                                device =    self._device_
+                                                            ).unsqueeze(0)
+            
+            # Observe transition.
+            self.observe(state, action, reward, new_state, (terminal or truncated))
+            
+            # Episode concludes if new state is terminal/truncated.
+            if terminal or truncated: break
+            
+            # Update current state.
+            state =                                         new_state
+            
+        # Provide evaluation resutls.
+        return {"reware": episode_reward, "steps": step}
         
     # HELPERS ======================================================================================
     
-    def _seed_(self,
-        random_seed:    int
-    ) -> None:
-        """# Seed Deep Q-Network Agent.
-        
-        Set the random seed so that initialization and stochastic operations are reproducible.
-
-        ## Args:
-            * random_seed   (int):  Random seed.
-        """
-        # Set the seed for generating random numbers on all devices.
-        manual_seed(seed = random_seed)
-        
-        # Debug seed.
-        self.__logger__.debug(f"Seeded Deep Q-Network with seed = {random_seed}")
+    def _decay_epsilon_(self) -> None:
+        """# Decay Exploration Rate."""
+        self._exploration_rate_:    float = max(
+                                                self._exploration_min_,
+                                                self._exploration_rate_ * self._exploration_decay_
+                                            )
     
-    @staticmethod
-    def _soft_update_(
-        target_network: Module,
-        online_network: Module,
-        tau:            float
-    ) -> None:
-        """# Soft-Update Target Network.
-        
-        Polyak averaging.
-
-        ## Args:
-            * target_network    (Module):   Target network.
-            * online_network    (Module):   Online Q network.
-            * tau               (float):    Soft update coefficient (polyak factor).
-        """
-        # With no gradient update...
-        with no_grad():
-            
-            # For each parameter in each network...
-            for target_parameter, paramter in zip(target_network.parameters(), online_network.parameters()):
-                
-                # Adminster Polyak averaging based on online network.
-                target_parameter.data.mul_(1.0 - tau).add_(tau * paramter.data)
-    
-    def _update_(self) -> Optional[float]:
-        """# Update Target Parameters.
-        
-        Sample fro replay buffer and update Q-Network.
+    def _explore_(self) -> int:
+        """# Explore.
         
         ## Returns:
-            * float | None: Loss item if network was updated.
+            * int:  Randomly sampled action from environment's action space.
         """
-        # If replay buffer is not ready for sampling, no update should be made.
-        if not self._replay_buffer_.is_ready_for_sampling: return None
+        # Debug action.
+        self.__logger__.debug(f"Choosing to explore")
         
-        # Sample a batch from experience replay buffer.
-        transitions, indices, weights = self._replay_buffer_.sample()
+        # Sample environment's action space.
+        return self._environment_.action_space.sample()
+    
+    def _get_q_values_(self,
+        states:     Tensor,
+        actions:    Tensor
+    ) -> Tensor:
+        """# Get Current Q-Values from Value Network.
+
+        ## Args:
+            * states    (Tensor):   States for which current Q-values are being provided.
+            * actions   (Tensor):   Actions taken for corresponding states.
+
+        ## Returns:
+            * Tensor:   Q-values for states according to value network.
+        """
+        return self._value_(states).gather(1, actions.unsqueeze(1))
+    
+    @no_grad()
+    def _get_target_q_values_(self,
+        new_states: Tensor
+    ) -> Tensor:
+        """# Get Target Q-Values from Target Network.
+
+        ## Args:
+            * new_states    (Tensor):   States for which target Q-values are being provided.
+
+        ## Returns:
+            * Tensor:   Q-values for new states according to target network.
+        """
+        return self._target_(new_states).max(1)[0].unsqueeze(1)
+    
+    @no_grad()
+    def _select_best_action_(self,
+        state:  Tensor
+    ) -> int:
+        """# Select Best Action.
         
-        # Initialize lists for storing transition components.
-        old_states: List[NDArray] =             []
-        actions:    List[Union[NDArray, int]] = []
-        rewards:    List[float] =               []
-        new_states: List[NDArray] =             []
-        dones:      List[bool] =                []
-        
-        # For each transition sampled...
-        for transition in transitions:
+        ## Args:
+            * state (Tensor):   State for which actino is being selected.
             
-            # Extract components.
-            old_states.append(transition.state)
-            actions.append(transition.action)
-            rewards.append(transition.reward)
-            new_states.append(transition.next_state)
-            dones.append(transition.done)
+        ## Returns:
+            * int:  Action selected for state.
+        """
+        # Debug action.
+        self.__logger__.debug(f"Choosing best action for state = {state}")
         
-        # Convert to Tensors.
-        old_states: Tensor =    as_tensor(old_states, device = self._device_, dtype = float32)
-        actions:    Tensor =    as_tensor(actions,    device = self._device_, dtype = long).view(-1, 1)
-        rewards:    Tensor =    as_tensor(rewards,    device = self._device_, dtype = float32).view(-1)
-        new_states: Tensor =    as_tensor(new_states, device = self._device_, dtype = float32)
-        dones:      Tensor =    as_tensor(dones,      device = self._device_, dtype = float32).view(-1)
+        # Select best action via value network.
+        return self._value_(state).argmax().item()
+    
+    def _train_value_network_(self) -> Optional[float]:
+        """# Train Value Network on Experience.
         
-        # Get Q(s, a) from online network.
-        q_sa:       Tensor =    self._q_network_(old_states).gather(1, actions).squeeze(1)
+        ## Returns:
+            * float:    Loss calculation if training takes place.
+        """
+        # If replay buffer is not ready for sampling, defer training.
+        if not self._memory_.is_ready_for_sampling: return None
         
-        # With no gradient update...
-        with no_grad():
-            
-            # Get max value from target network.
-            q_max:  Tensor =    self._target_q_network_(new_states).max(dim = 1).values
-            
-            # Compute bootstrap target.
-            y:      Tensor =    rewards + self._discount_rate_ * (1.0 - dones) * q_max
-            
-        # Compute Huber loss between current Q and target.
-        loss:       Tensor =    smooth_l1_loss(input = q_sa, target = y)
+        # Sample a batch of transitions from experience replay buffer.
+        transitions:    List[Transition] =  self._memory_.sample().transitions
         
-        # If weights were provided...
-        if weights is not None:
-            
-            # Update weights..
-            weights:    Tensor =    as_tensor(weights, device = self._device_, dtype = float32)
-            loss:       Tensor =    (loss * weights).mean()
+        # Convert batch to tensors
+        states:             Tensor =            stack([t.state.squeeze() for t in transitions]).to(self._device_)
+        actions:            Tensor =            LongTensor([t.action for t in transitions]).to(self._device_)
+        rewards:            Tensor =            FloatTensor([t.reward for t in transitions]).to(self._device_)
+        new_states:         Tensor =            stack([t.next_state.squeeze() for t in transitions]).to(self._device_)
+        dones:              Tensor =            BoolTensor([t.done for t in transitions]).to(self._device_)
+        
+        # Get current Q-values.
+        q_values:           Tensor =            self._get_q_values_(states = states, actions = actions)
+        
+        # Get target Q-values.
+        target_q_values:    Tensor =            self._get_target_q_values_(new_states = new_states)
+        
+        # Discount target Q-values.
+        target_q_values:    Tensor =            rewards.unsqueeze(1) + (self._discount_rate_ * target_q_values * (~dones).unsqueeze(1))
+        
+        # Compute loss.
+        loss:               Tensor =            smooth_l1_loss(input = q_values, target = target_q_values)
         
         # Reset gradients.
-        self._optimizer_.zero_grad(set_to_none = True)
+        self._optimizer_.zero_grad()
         
         # Back propagation.
         loss.backward()
         
+        # Clip gradients.
+        clip_grad_value_(parameters = self._value_.parameters(), clip_value = 1.0)
+        
         # Update weights.
         self._optimizer_.step()
         
-        # Soft update target network.
-        self._soft_update_(
-            target_network =    self._target_q_network_,
-            online_network =    self._q_network_,
-            tau =               self._target_tau_
-        )
-        
-        # If using prioritized replay, update priorities with TD errors
-        if indices is not None: self._replay_buffer_.update_priorities(
-                                    indices =   indices,
-                                    td_errors = abs(q_sa - y).detach().cpu().numpy()
-                                )
-        
-        # Provide computed loss.
-        return float(loss.item())
+        # Provide loss calculation.
+        return loss.item()
+    
+    def _update_target_network_(self) -> None:
+        """# Hard Update Target Network."""
+        self._target_.load_state_dict(state_dict = self._value_.state_dict())

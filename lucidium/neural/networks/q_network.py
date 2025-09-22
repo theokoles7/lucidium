@@ -58,7 +58,7 @@ class QNetwork(Module):
         
         # Create Q-network.
         self._network_:     Sequential =    Sequential(*create_mlp(
-                                                input_size =    extract_space_size(size = observation_space),
+                                                input_size =    extract_space_size(space = observation_space),
                                                 output_size =   action_space.n,
                                                 hidden_size =   hidden_size,
                                                 activation =    activation,
